@@ -1,0 +1,287 @@
+import { useState, useEffect } from 'react';
+import type { TableData, TableColumn, TableRow } from './types';
+import { generateId } from './utils/tdaim';
+import { useTdaim } from './hooks/useTdaim';
+import TableEditor from './components/TableEditor';
+import PrintModal from './components/PrintModal';
+import { Plus, X, Sun, Moon, Palette } from 'lucide-react';
+
+const createDefaultTable = (): TableData => {
+  const columns: TableColumn[] = [
+    { id: generateId(), name: 'الكود', type: 'code', width: 140 },
+    { id: generateId(), name: 'الاسم', width: 550 },
+    { id: generateId(), name: 'الدرجة / 25', type: 'grade', width: 240 }
+  ];
+  
+  const rows: TableRow[] = [];
+  
+  return {
+    id: generateId(),
+    name: 'كشف نتيجة الامتحان الشامل الأول',
+    columns,
+    rows
+  };
+};
+
+export default function App() {
+  const { theme, toggleTheme } = useTdaim();
+  const [tables, setTables] = useState<TableData[]>(() => {
+    const saved = localStorage.getItem('exam-tables');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [createDefaultTable()];
+      }
+    }
+    return [createDefaultTable()];
+  });
+  
+  const [activeTableId, setActiveTableId] = useState<string>(() => tables[0]?.id || '');
+  const [editMode, setEditMode] = useState(false);
+  const [styleMode, setStyleMode] = useState(false);
+  const [tableStyle, setTableStyle] = useState<'classic' | 'soft' | 'compact'>(() =>
+    (localStorage.getItem('exam-table-style') as 'classic' | 'soft' | 'compact' | null) || 'soft'
+  );
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printJob, setPrintJob] = useState<{ title: string; tableIds: string[] } | null>(null);
+  const [tableTitleInput, setTableTitleInput] = useState(() => tables.find(t => t.id === activeTableId)?.name || '');
+
+  const activeTable = tables.find(t => t.id === activeTableId);
+
+  useEffect(() => {
+    if (activeTable) {
+      setTableTitleInput(activeTable.name);
+    }
+  }, [activeTableId, activeTable]);
+
+  useEffect(() => {
+    localStorage.setItem('exam-tables', JSON.stringify(tables));
+  }, [tables]);
+
+  useEffect(() => {
+    localStorage.setItem('exam-table-style', tableStyle);
+  }, [tableStyle]);
+
+  useEffect(() => {
+    if (!printJob) return;
+    const originalTitle = document.title;
+    const finishPrint = () => {
+      document.title = originalTitle;
+      setPrintJob(null);
+    };
+    document.title = printJob.title;
+    window.addEventListener('afterprint', finishPrint, { once: true });
+    const timer = window.setTimeout(() => window.print(), 150);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('afterprint', finishPrint);
+      document.title = originalTitle;
+    };
+  }, [printJob]);
+
+  const updateActiveTable = (updatedTable: TableData) => {
+    setTables(prev => prev.map(t => t.id === activeTableId ? updatedTable : t));
+  };
+
+  const renameActiveTable = (name: string) => {
+    if (!activeTable) return;
+    const updated = { ...activeTable, name };
+    updateActiveTable(updated);
+    setTableTitleInput(name);
+  };
+
+  const addTab = () => {
+    const newTable = createDefaultTable();
+    newTable.name = `جدول جديد ${tables.length + 1}`;
+    setTables(prev => [...prev, newTable]);
+    setActiveTableId(newTable.id);
+  };
+
+  const closeTab = (tableId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (tables.length <= 1) return;
+    
+    const newTables = tables.filter(t => t.id !== tableId);
+    setTables(newTables);
+    
+    if (activeTableId === tableId) {
+      setActiveTableId(newTables[0].id);
+    }
+  };
+
+  const toggleEditMode = () => {
+    setEditMode(!editMode);
+  };
+
+  const getStats = () => {
+    if (!activeTable) return { count: 0, avg: 0, max: 0, mode: 0, modeCount: 0 };
+    
+    const grades = activeTable.rows
+      .map(r => {
+        const gradeCell = r.cells.find(c => c.type === 'grade');
+        if (!gradeCell) return NaN;
+        const v = gradeCell.value.trim();
+        if (v === '' || v === '#') return NaN;
+        return parseFloat(v);
+      })
+      .filter(v => !isNaN(v));
+    
+    const count = activeTable.rows.length;
+    const avg = grades.length ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
+    const max = grades.length ? Math.max(...grades) : 0;
+    
+    const counts = new Map<number, number>();
+    grades.forEach(g => counts.set(g, (counts.get(g) || 0) + 1));
+    let mode = 0;
+    let modeCount = 0;
+    counts.forEach((c, val) => {
+      if (c > modeCount || (c === modeCount && mode === 0)) {
+        modeCount = c;
+        mode = val;
+      }
+    });
+    
+    return { count, avg: avg.toFixed(1), max, mode: mode || 0, modeCount };
+  };
+
+  const stats = getStats();
+
+  return (
+    <div className="min-h-screen bg-[#eef2f7] dark:bg-gray-950 font-cairo transition-colors" dir="rtl">
+      <div className="w-full max-w-[1200px] mx-auto px-4 py-6 md:py-10">
+        <div className="app-shell bg-white dark:bg-gray-900 rounded-2xl shadow-[0_20px_60px_-20px_rgba(15,23,42,0.28)] p-4 md:p-7 relative border border-slate-200/80 dark:border-gray-800">
+          {/* Title Band - matching original */}
+          <div className="bg-gradient-to-br from-[#172554] via-[#1d4ed8] to-[#3b82f6] text-white rounded-xl p-4 md:p-5 mb-5 flex flex-wrap items-center justify-between gap-4 shadow-[0_10px_26px_-10px_rgba(37,99,235,0.65)]">
+            <input
+              type="text"
+              value={tableTitleInput}
+              onChange={(e) => setTableTitleInput(e.target.value)}
+              onBlur={() => renameActiveTable(tableTitleInput)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                }
+              }}
+              className="report-title flex-1 text-lg md:text-xl font-bold bg-transparent border-none outline-none border-b-2 border-white/40 focus:border-white/80 pb-2 text-right"
+              placeholder="عنوان الجدول"
+            />
+            <div className="flex gap-2 flex-shrink-0 flex-wrap">
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">عدد الطلاب</span>
+                <span className="block text-base md:text-lg font-bold">{stats.count}</span>
+              </div>
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">المعدل</span>
+                <span className="block text-base md:text-lg font-bold">{stats.avg}</span>
+              </div>
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">الأغلب</span>
+                <span className="block text-base md:text-lg font-bold"><span className="text-[10px] md:text-[11px] mr-1">({stats.modeCount})</span>{stats.mode}</span>
+              </div>
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">أعلى درجة</span>
+                <span className="block text-base md:text-lg font-bold">{stats.max}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              محفوظ تلقائياً على هذا الجهاز
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={toggleTheme} className="toolbar-button" aria-label={theme === 'light' ? 'تفعيل الوضع الداكن' : 'تفعيل الوضع الفاتح'}>
+                {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                {theme === 'light' ? 'الوضع الداكن' : 'الوضع الفاتح'}
+              </button>
+              <button onClick={() => setStyleMode(!styleMode)} className={`toolbar-button ${styleMode ? 'toolbar-button-active' : ''}`}>
+                <Palette className="w-4 h-4" />
+                {styleMode ? 'إنهاء التنسيق' : 'تنسيق الجدول'}
+              </button>
+              {styleMode && (
+                <select value={tableStyle} onChange={e => setTableStyle(e.target.value as typeof tableStyle)} className="style-select" aria-label="نمط الجدول">
+                  <option value="soft">ناعم</option>
+                  <option value="classic">كلاسيكي</option>
+                  <option value="compact">مضغوط</option>
+                </select>
+              )}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-1.5 border-b border-slate-300 dark:border-gray-600">
+              {tables.map(table => (
+                <div
+                  key={table.id}
+                  onClick={() => setActiveTableId(table.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-t-md cursor-pointer text-sm font-semibold transition-colors ${
+                    activeTableId === table.id
+                      ? 'bg-white dark:bg-gray-800 text-[#2563eb] dark:text-blue-400 border-t-2 border-[#2563eb]'
+                      : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <span className="truncate max-w-[120px]">{table.name}</span>
+                  {tables.length > 1 && (
+                    <button
+                      onClick={(e) => closeTab(table.id, e)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={addTab}
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                إضافة تبويب
+              </button>
+            </div>
+          </div>
+
+          {/* Table */}
+          {activeTable && (
+            <div className="print-content">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3 print-only-title hidden text-center">
+                {activeTable.name}
+              </h2>
+              <TableEditor
+                table={activeTable}
+                editMode={editMode}
+                tableStyle={tableStyle}
+                onUpdate={updateActiveTable}
+                onToggleEditMode={toggleEditMode}
+                onPrint={() => setShowPrintModal(true)}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <PrintModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        tables={tables}
+        activeTableId={activeTableId}
+        onPrint={(title, tableIds) => setPrintJob({ title, tableIds })}
+      />
+      {printJob && (
+        <div className="print-batch hidden">
+          {tables.filter(table => printJob.tableIds.includes(table.id)).map((table, index) => (
+            <section className="print-sheet" key={table.id}>
+              <h1 className="print-batch-title">{printJob.title}</h1>
+              <h2 className="print-batch-table-title">{table.name}</h2>
+              <TableEditor table={table} editMode={false} tableStyle={tableStyle} onUpdate={() => {}} />
+              {index < printJob.tableIds.length - 1 && <div className="print-page-break" />}
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
