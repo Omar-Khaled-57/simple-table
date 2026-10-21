@@ -173,8 +173,7 @@
     .print-page-break { height: 0; break-after: page; }
     .print-title-band { display: flex !important; align-items: center; justify-content: space-between; gap: 10pt; width: 100%; margin: 0 0 9pt; padding: 7pt 10pt; border-radius: 6pt; color: #fff !important; background: linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%) !important; box-shadow: none !important; break-inside: avoid; }
     .print-title-copy { flex: 1 1 auto; min-width: 0; }
-    .print-title-copy h1 { margin: 0; padding: 0 0 5pt; color: #fff !important; border-bottom: 1.5pt solid rgba(255,255,255,.45); font-size: 15pt; font-weight: 700; line-height: 1.4; text-align: right; }
-    .print-title-copy p { margin: 3pt 0 0; color: rgba(255,255,255,.86) !important; font-size: 8pt; }
+    .print-title-copy h1 { margin: 0; padding: 0; color: #fff !important; font-size: 17pt; font-weight: 700; line-height: 1.4; text-align: right; }
     .print-stat-list { display: flex; flex: 0 0 auto; gap: 5pt; }
     .print-stat { min-width: 48pt; padding: 3pt 5pt; border: .5pt solid rgba(255,255,255,.35); border-radius: 5pt; background: rgba(255,255,255,.16) !important; text-align: center; }
     .print-stat span { display: block; color: #fff !important; font-size: 7pt; font-weight: 600; }

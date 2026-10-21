@@ -15,7 +15,7 @@ interface TableEditorProps {
 
 export default function TableEditor({ table, editMode, tableStyle, onUpdate, onToggleEditMode, onPrint, onTableStyleChange }: TableEditorProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; rtl?: boolean } | null>(null);
+  const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; rtl: boolean } | null>(null);
   const [sortKey, setSortKey] = useState<'name' | 'grade'>('grade');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
@@ -186,13 +186,14 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     if (!editMode) return;
     e.preventDefault();
     e.stopPropagation();
-    const th = (e.currentTarget as HTMLElement).closest('th');
+    const handle = e.currentTarget as HTMLElement;
+    const th = handle.closest('th');
     const startWidth = table.columns[colIndex].width || th?.offsetWidth || 150;
-    const rtl = document.documentElement.dir === 'rtl' || document.dir === 'rtl';
+    const rtl = getComputedStyle(handle).direction === 'rtl';
     resizeRef.current = { colIndex, startX: e.clientX, startWidth, rtl };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    handle.setPointerCapture?.(e.pointerId);
     window.addEventListener('pointermove', onResizeMove);
     window.addEventListener('pointerup', stopResize);
     window.addEventListener('pointercancel', stopResize);
@@ -201,8 +202,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
   const onResizeMove = (e: PointerEvent) => {
     const state = resizeRef.current;
     if (!state) return;
-    const rtl = state.rtl ?? (document.documentElement.dir === 'rtl');
-    const delta = rtl ? (state.startX - e.clientX) : (e.clientX - state.startX);
+    const delta = state.rtl ? (state.startX - e.clientX) : (e.clientX - state.startX);
     const newWidth = Math.max(50, Math.round(state.startWidth + delta));
     const newCols = table.columns.map((col, i) => i === state.colIndex ? { ...col, width: newWidth } : col);
     onUpdate({ ...table, columns: newCols });
@@ -253,63 +253,39 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
 
   return (
     <div className="w-full">
-      <div className={`table-control-strip mb-3 flex flex-wrap items-center gap-2 p-2.5 rounded-xl border transition-colors ${editMode ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700'}`}>
+      <div className={`table-control-strip mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-center p-2.5 rounded-xl border transition-colors ${editMode ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700'}`}>
+          <button
+            onClick={addRow}
+            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-700 shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة صف
+          </button>
           {onToggleEditMode && (
             <button
               onClick={onToggleEditMode}
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
+              className={`w-full lg:w-auto justify-center px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
               aria-pressed={editMode}
             >
               <Edit3 className="w-4 h-4" /> {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
             </button>
           )}
-          <button
-            onClick={addRow}
-            className="px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-700 shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            إضافة صف
-          </button>
-          {editMode && <>
+          {editMode && (
           <button
             onClick={addColumn}
-            className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors"
+            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors"
           >
             <Plus className="w-4 h-4" />
             إضافة عمود
           </button>
-          <span className="text-xs text-amber-700 dark:text-amber-300 self-center">وضع التعديل نشط</span>
-          </>}
-          {onTableStyleChange && (
-            <div className="relative">
-              <button
-                onClick={() => setStyleMenuOpen(open => !open)}
-                aria-haspopup="menu"
-                aria-expanded={styleMenuOpen}
-                className="px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
-              >
-                <Palette className="w-4 h-4" /> تنسيق {tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
-                <ChevronDown className="w-4 h-4 opacity-80" />
-              </button>
-              {styleMenuOpen && (
-                <div className="style-menu absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800" role="menu" aria-label="تنسيق الجدول">
-                  {(['classic', 'soft', 'compact'] as const).map(style => (
-                    <button key={style} type="button" role="menuitemradio" aria-checked={tableStyle === style} onClick={() => { onTableStyleChange(style); setStyleMenuOpen(false); }} className="style-menu-item" dir="rtl">
-                      <span>{style === 'classic' ? 'كلاسيكي' : style === 'soft' ? 'ناعم' : 'مضغوط'}</span>
-                      {tableStyle === style && <Check className="w-4 h-4" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           )}
-          <div className="relative">
+          <div className="relative w-full lg:w-auto">
             <button
               onClick={() => setSortMenuOpen(open => !open)}
               onDoubleClick={() => sortRows(sortKey)}
               aria-haspopup="menu"
               aria-expanded={sortMenuOpen}
-              className="px-3.5 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
+              className="w-full lg:w-auto justify-center px-3.5 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
               title="خيارات الترتيب"
             >
               {sortDirection === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4" /> : <ArrowDownWideNarrow className="w-4 h-4" />}
@@ -329,10 +305,36 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               </div>
             )}
           </div>
+          {onTableStyleChange && (
+            <div className="relative w-full lg:w-auto">
+              <button
+                onClick={() => setStyleMenuOpen(open => !open)}
+                aria-haspopup="menu"
+                aria-expanded={styleMenuOpen}
+                className="w-full lg:w-auto justify-center px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
+              >
+                <Palette className="w-4 h-4" /> تنسيق {tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
+                <ChevronDown className="w-4 h-4 opacity-80" />
+              </button>
+              {styleMenuOpen && (
+                <div className="style-menu absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800" role="menu" aria-label="تنسيق الجدول">
+                  {(['classic', 'soft', 'compact'] as const).map(style => (
+                    <button key={style} type="button" role="menuitemradio" aria-checked={tableStyle === style} onClick={() => { onTableStyleChange(style); setStyleMenuOpen(false); }} className="style-menu-item" dir="rtl">
+                      <span>{style === 'classic' ? 'كلاسيكي' : style === 'soft' ? 'ناعم' : 'مضغوط'}</span>
+                      {tableStyle === style && <Check className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {onPrint && (
-            <button onClick={onPrint} className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors">
+            <button onClick={onPrint} className="w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors">
               <Printer className="w-4 h-4" /> طباعة
             </button>
+          )}
+          {editMode && (
+            <span className="col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-amber-700 dark:text-amber-300 self-center">وضع التعديل نشط</span>
           )}
       </div>
       <input

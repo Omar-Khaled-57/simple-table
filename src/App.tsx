@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { TableData, TableColumn, TableRow } from './types';
 import { generateId } from './utils/tdaim';
 import { useTdaim } from './hooks/useTdaim';
@@ -74,10 +74,24 @@ export default function App() {
     (localStorage.getItem('exam-table-style') as 'classic' | 'soft' | 'compact' | null) || 'classic'
   );
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [printJob, setPrintJob] = useState<{ title: string; tableIds: string[] } | null>(null);
+  const [printJob, setPrintJob] = useState<{ tableIds: string[] } | null>(null);
   const [tableTitleInput, setTableTitleInput] = useState(() => tables.find(t => t.id === activeTableId)?.name || '');
 
   const activeTable = tables.find(t => t.id === activeTableId);
+
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const autoGrow = (el: HTMLTextAreaElement) => {
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    const el = titleRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [tableTitleInput, activeTableId]);
 
   useEffect(() => {
     if (activeTable) {
@@ -100,7 +114,11 @@ export default function App() {
       document.title = originalTitle;
       setPrintJob(null);
     };
-    document.title = printJob.title;
+    const printNames = tables
+      .filter(table => printJob.tableIds.includes(table.id))
+      .map(table => table.name)
+      .join(' - ');
+    document.title = printNames || originalTitle;
     window.addEventListener('afterprint', finishPrint, { once: true });
     const timer = window.setTimeout(() => window.print(), 150);
     return () => {
@@ -108,7 +126,7 @@ export default function App() {
       window.removeEventListener('afterprint', finishPrint);
       document.title = originalTitle;
     };
-  }, [printJob]);
+  }, [printJob, tables]);
 
   const updateActiveTable = (updatedTable: TableData) => {
     setTables(prev => prev.map(t => t.id === activeTableId ? updatedTable : t));
@@ -156,18 +174,21 @@ export default function App() {
         <div className="app-shell bg-white dark:bg-gray-900 rounded-2xl shadow-[0_20px_60px_-20px_rgba(15,23,42,0.28)] p-4 md:p-7 relative border border-slate-200/80 dark:border-gray-800">
           {/* Title Band - matching original */}
           <div className="report-band text-white rounded-xl p-4 md:p-5 mb-5 flex flex-wrap items-center justify-between gap-4 shadow-[0_10px_26px_-10px_rgba(37,99,235,0.65)]">
-            <input
-              type="text"
+            <textarea
+              ref={titleRef}
               value={tableTitleInput}
-              onChange={(e) => setTableTitleInput(e.target.value)}
+              rows={1}
+              onChange={(e) => { setTableTitleInput(e.target.value); autoGrow(e.target); }}
               onBlur={() => renameActiveTable(tableTitleInput)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
                   e.currentTarget.blur();
                 }
               }}
-              className="report-title flex-1 text-lg md:text-xl font-bold bg-transparent border-none outline-none border-b-2 border-white/40 focus:border-white/80 pb-2 text-right"
+              className="report-title flex-1 min-w-0 w-full sm:w-auto resize-none overflow-hidden text-lg md:text-xl font-bold bg-transparent border-none outline-none border-b-2 border-white/40 focus:border-white/80 pb-2 text-right leading-snug"
               placeholder="عنوان الجدول"
+              aria-label="عنوان التقرير"
             />
             <div className="stats-grid grid grid-cols-2 sm:flex sm:flex-wrap gap-2 flex-shrink-0 w-full sm:w-auto">
               <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
@@ -261,7 +282,7 @@ export default function App() {
         onClose={() => setShowPrintModal(false)}
         tables={tables}
         activeTableId={activeTableId}
-        onPrint={(title, tableIds) => setPrintJob({ title, tableIds })}
+        onPrint={(tableIds) => setPrintJob({ tableIds })}
       />
       {printJob && (
         <div className="print-batch hidden">
@@ -271,8 +292,7 @@ export default function App() {
               <section className="print-sheet" key={table.id}>
                 <header className="print-title-band">
                   <div className="print-title-copy">
-                    <h1>{printJob.title}</h1>
-                    <p>{table.name}</p>
+                    <h1>{table.name}</h1>
                   </div>
                   <div className="print-stat-list">
                     <div className="print-stat"><span>عدد الطلاب</span><strong>{printStats.count}</strong></div>

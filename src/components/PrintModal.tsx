@@ -7,7 +7,7 @@ interface PrintModalProps {
   onClose: () => void;
   tables: TableData[];
   activeTableId: string | null;
-  onPrint: (title: string, tableIds: string[]) => void;
+  onPrint: (tableIds: string[]) => void;
 }
 
 export default function PrintModal({ isOpen, onClose, tables, activeTableId, onPrint }: PrintModalProps) {
@@ -17,7 +17,6 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
   const [selectedTables, setSelectedTables] = useState<string[]>(
     activeTableId ? [activeTableId] : []
   );
-  const [printTitle, setPrintTitle] = useState('كشف نتائج الامتحان');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -50,7 +49,7 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
       : printOption === 'all'
         ? tables.map(table => table.id)
         : selectedTables;
-    onPrint(printTitle.trim() || 'كشف نتائج الامتحان', ids);
+    onPrint(ids);
     onClose();
   };
 
@@ -65,17 +64,6 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
         </div>
         
         <div className="p-6 space-y-4">
-          <div>
-            <label htmlFor="print-title" className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">عنوان الطباعة</label>
-            <input
-              id="print-title"
-              type="text"
-              value={printTitle}
-              onChange={(e) => setPrintTitle(e.target.value)}
-              className="w-full px-3 py-2.5 border border-slate-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">خيارات الطباعة</label>
             <div className="space-y-2">
