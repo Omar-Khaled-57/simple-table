@@ -169,21 +169,21 @@ export default function App() {
               className="report-title flex-1 text-lg md:text-xl font-bold bg-transparent border-none outline-none border-b-2 border-white/40 focus:border-white/80 pb-2 text-right"
               placeholder="عنوان الجدول"
             />
-            <div className="flex gap-2 flex-shrink-0 flex-wrap">
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">عدد الطلاب</span>
+            <div className="stats-grid grid grid-cols-2 sm:flex sm:flex-wrap gap-2 flex-shrink-0 w-full sm:w-auto">
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">عدد الطلاب</span>
                 <span className="block text-base md:text-lg font-bold">{stats.count}</span>
               </div>
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">المعدل</span>
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">المعدل</span>
                 <span className="block text-base md:text-lg font-bold">{stats.avg}</span>
               </div>
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">الأغلب</span>
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">الأغلب</span>
                 <span className="block text-base md:text-lg font-bold"><span className="text-[10px] md:text-[11px] mr-1">({stats.modeCount})</span>{stats.mode}</span>
               </div>
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-[70px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold">أعلى درجة</span>
+              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">أعلى درجة</span>
                 <span className="block text-base md:text-lg font-bold">{stats.max}</span>
               </div>
             </div>
@@ -203,19 +203,19 @@ export default function App() {
           </div>
 
           {/* Tabs */}
-          <div className="mb-3">
-            <div className="flex flex-wrap gap-1.5 border-b border-slate-300 dark:border-gray-600">
+          <div className="mb-3 -mx-4 px-4 md:mx-0 md:px-0">
+            <div className="tabs-scroll flex gap-1.5 border-b border-slate-300 dark:border-gray-600 overflow-x-auto md:flex-wrap md:overflow-visible pb-px">
               {tables.map(table => (
                 <div
                   key={table.id}
                   onClick={() => setActiveTableId(table.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-t-md cursor-pointer text-sm font-semibold transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-t-md cursor-pointer text-sm font-semibold transition-colors shrink-0 ${
                     activeTableId === table.id
                       ? 'bg-white dark:bg-gray-800 text-[#2563eb] dark:text-blue-400 border-t-2 border-[#2563eb]'
                       : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600'
                   }`}
                 >
-                  <span className="truncate max-w-[120px]">{table.name}</span>
+                  <span className="truncate max-w-[120px] md:max-w-[160px]">{table.name}</span>
                   {tables.length > 1 && (
                     <button
                       onClick={(e) => closeTab(table.id, e)}
@@ -228,7 +228,7 @@ export default function App() {
               ))}
               <button
                 onClick={addTab}
-                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors"
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 إضافة تبويب

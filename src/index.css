@@ -111,8 +111,34 @@
   transition: background-color 120ms;
 }
 
+.column-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-end: -8px;
+  width: 16px;
+}
+
 .column-resize-handle:hover,
 .column-resize-handle:active { background: #2563eb; opacity: 0.85; }
+
+/* Sticky index column for horizontal scroll on small screens */
+.grade-table .sticky-col { position: sticky; inset-inline-start: 0; z-index: 6; }
+.grade-table th.sticky-col { z-index: 12; background-image: linear-gradient(180deg, #eff6ff 0%, #cbd5e1 100%); }
+.grade-table td.sticky-col { background: #fff; }
+.grade-table.soft .grade-row:nth-child(even) td.sticky-col { background: #f8fafc; }
+.grade-table.soft .grade-row:hover td.sticky-col { background: #eff6ff; }
+.grade-table.classic .grade-row:nth-child(even) td.sticky-col { background: #f1f5f9; }
+.grade-table.classic .grade-row:hover td.sticky-col { background: #e2e8f0; }
+.grade-table.compact td.sticky-col { background: #fff; }
+.dark .grade-table th.sticky-col { background-image: linear-gradient(180deg, #1f2937 0%, #111827 100%); }
+.dark .grade-table td.sticky-col { background: #111827; }
+.dark .grade-table.soft .grade-row:nth-child(even) td.sticky-col { background: #111827; }
+.dark .grade-table.soft .grade-row:hover td.sticky-col { background: #1e293b; }
+.dark .grade-table.classic .grade-row:nth-child(even) td.sticky-col { background: #1f2937; }
+.dark .grade-table.classic .grade-row:hover td.sticky-col { background: #334155; }
+
 
 .dark .edit-icon-danger { background: #7f1d1d; border-color: #991b1b; color: #fee2e2; }
 .name-cell-wrapper { display: flex; align-items: center; justify-content: flex-start; gap: 0.45rem; min-width: 0; }
@@ -176,4 +202,15 @@
     .print-batch .print-signature { border: none !important; padding: 7pt 0 0 !important; color: #1e3a8a !important; text-align: left !important; font-size: 10pt !important; font-weight: 700 !important; }
     .print-batch button { display: none !important; }
   }
+}
+
+/* Smooth mobile scrolling */
+.table-scroll { -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.tabs-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+.tabs-scroll::-webkit-scrollbar { display: none; }
+
+@media (max-width: 640px) {
+  .table-scroll { margin-inline: -0.25rem; padding-inline: 0.25rem; }
+  .column-resize-handle { width: 6px; }
+  .column-resize-handle::before { width: 22px; inset-inline-end: -11px; }
 }

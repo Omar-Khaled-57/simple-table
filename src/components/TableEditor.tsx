@@ -15,7 +15,7 @@ interface TableEditorProps {
 
 export default function TableEditor({ table, editMode, tableStyle, onUpdate, onToggleEditMode, onPrint, onTableStyleChange }: TableEditorProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; factor: number } | null>(null);
+  const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; rtl?: boolean } | null>(null);
   const [sortKey, setSortKey] = useState<'name' | 'grade'>('grade');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
@@ -182,22 +182,24 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     updateTable({ columns: newCols });
   };
 
-  const startResize = (e: React.MouseEvent, colIndex: number) => {
+  const startResize = (e: React.PointerEvent, colIndex: number) => {
     if (!editMode) return;
     e.preventDefault();
     e.stopPropagation();
     const th = (e.currentTarget as HTMLElement).closest('th');
     const startWidth = table.columns[colIndex].width || th?.offsetWidth || 150;
     const rtl = document.documentElement.dir === 'rtl' || document.dir === 'rtl';
-    resizeRef.current = { colIndex, startX: e.clientX, startWidth, factor: rtl ? 1 : 1, rtl } as any;
+    resizeRef.current = { colIndex, startX: e.clientX, startWidth, rtl };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
-    window.addEventListener('mousemove', onResizeMove);
-    window.addEventListener('mouseup', stopResize);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    window.addEventListener('pointermove', onResizeMove);
+    window.addEventListener('pointerup', stopResize);
+    window.addEventListener('pointercancel', stopResize);
   };
 
-  const onResizeMove = (e: MouseEvent) => {
-    const state: any = resizeRef.current;
+  const onResizeMove = (e: PointerEvent) => {
+    const state = resizeRef.current;
     if (!state) return;
     const rtl = state.rtl ?? (document.documentElement.dir === 'rtl');
     const delta = rtl ? (state.startX - e.clientX) : (e.clientX - state.startX);
@@ -210,8 +212,9 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     resizeRef.current = null;
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
-    window.removeEventListener('mousemove', onResizeMove);
-    window.removeEventListener('mouseup', stopResize);
+    window.removeEventListener('pointermove', onResizeMove);
+    window.removeEventListener('pointerup', stopResize);
+    window.removeEventListener('pointercancel', stopResize);
   };
 
   const getTier = (value: string) => {
@@ -246,9 +249,20 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
 
   const totalColumnWidth = table.columns.reduce((sum, column) => sum + (column.width || 150), 0);
 
+  const totalTableWidth = 56 + table.columns.reduce((sum, col) => sum + (col.width || 150), 0);
+
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full">
       <div className={`table-control-strip mb-3 flex flex-wrap items-center gap-2 p-2.5 rounded-xl border transition-colors ${editMode ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700'}`}>
+          {onToggleEditMode && (
+            <button
+              onClick={onToggleEditMode}
+              className={`px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
+              aria-pressed={editMode}
+            >
+              <Edit3 className="w-4 h-4" /> {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
+            </button>
+          )}
           <button
             onClick={addRow}
             className="px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-700 shadow-sm transition-colors"
@@ -256,11 +270,16 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             <Plus className="w-4 h-4" />
             إضافة صف
           </button>
-          {onPrint && (
-            <button onClick={onPrint} className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors">
-              <Printer className="w-4 h-4" /> طباعة
-            </button>
-          )}
+          {editMode && <>
+          <button
+            onClick={addColumn}
+            className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة عمود
+          </button>
+          <span className="text-xs text-amber-700 dark:text-amber-300 self-center">وضع التعديل نشط</span>
+          </>}
           {onTableStyleChange && (
             <div className="relative">
               <button
@@ -310,25 +329,11 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               </div>
             )}
           </div>
-          {onToggleEditMode && (
-            <button
-              onClick={onToggleEditMode}
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
-              aria-pressed={editMode}
-            >
-              <Edit3 className="w-4 h-4" /> {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
+          {onPrint && (
+            <button onClick={onPrint} className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors">
+              <Printer className="w-4 h-4" /> طباعة
             </button>
           )}
-          {editMode && <>
-          <button
-            onClick={addColumn}
-            className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            إضافة عمود
-          </button>
-          <span className="text-xs text-amber-700 dark:text-amber-300 self-center">وضع التعديل نشط</span>
-          </>}
       </div>
       <input
         ref={imageInputRef}
@@ -341,7 +346,12 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         }}
       />
 
-      <table className={`grade-table ${tableStyle} w-full border-collapse table-fixed`} id="gradeTable">
+      <div className="table-scroll overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 dark:border-gray-700">
+      <table
+        className={`grade-table ${tableStyle} w-full border-collapse table-fixed`}
+        id="gradeTable"
+        style={{ minWidth: totalTableWidth }}
+      >
         <colgroup>
           <col style={{ width: '7%' }} />
           {table.columns.map(col => (
@@ -350,7 +360,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         </colgroup>
         <thead>
           <tr>
-            <th className="table-heading border border-slate-200 dark:border-gray-700 px-2 py-2.5 bg-gradient-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10">
+            <th className="table-heading sticky-col border border-slate-200 dark:border-gray-700 px-2 py-2.5 bg-gradient-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10">
               #
             </th>
             {table.columns.map((col, colIndex) => (
@@ -413,7 +423,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                 {editMode && (
                   <div
                     className="column-resize-handle"
-                    onMouseDown={(e) => startResize(e, colIndex)}
+                    onPointerDown={(e) => startResize(e, colIndex)}
                     title="اسحب لتغيير العرض"
                     aria-label="تغيير عرض العمود"
                   />
@@ -425,7 +435,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         <tbody>
           {table.rows.map((row, rowIndex) => (
             <tr key={row.id} className="grade-row">
-              <td className="grade-cell border border-slate-200 dark:border-gray-700 px-2 py-1.5 text-center font-bold text-slate-500 dark:text-slate-400 text-sm">
+              <td className="grade-cell sticky-col border border-slate-200 dark:border-gray-700 px-2 py-1.5 text-center font-bold text-slate-500 dark:text-slate-400 text-sm">
                 {rowIndex + 1}
                 {editMode && (
                   <div className="flex flex-col gap-0.5 mt-1">
@@ -542,6 +552,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
           </tr>
         </tfoot>
       </table>
+      </div>
     </div>
   );
 }
