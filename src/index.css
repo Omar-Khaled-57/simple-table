@@ -186,7 +186,8 @@
 .dark .tag-remove-button { background: #991b1b; color: #fee2e2; }
 .dark .tag-remove-button:hover { background: #b91c1c; }
 .dark .tag-add-button { background: #047857; color: white; }
-.student-image { height: 3.2rem; max-width: min(100%, 10rem); object-fit: contain; border: 1px solid #cbd5e1; border-radius: 0.4rem; cursor: pointer; }
+.name-cell-wrapper.has-student-image { min-height: 10rem; justify-content: center; }
+.student-image { display: block; flex: 0 0 auto; width: auto; height: 10rem; max-width: 100%; object-fit: contain; object-position: center; margin-inline: auto; border: 1px solid #cbd5e1; border-radius: 0.4rem; cursor: pointer; }
 .image-cell-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 1.8rem; height: 1.8rem; padding: 0; border-radius: 0.45rem; background: #eff6ff; color: #2563eb; transition: background-color 120ms; }
 .image-cell-button:hover { background: #dbeafe; }
 .dark .student-image { border-color: #475569; }
@@ -228,7 +229,8 @@
     .print-batch .print-grade-pill.tier-d { background: #fee2e2 !important; color: #991b1b !important; border-color: #fca5a5 !important; }
     .print-batch .print-name-cell { display: flex !important; align-items: center; gap: 3pt; min-width: 0; }
     .print-batch .print-cell-value { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-    .print-batch .print-student-image { height: 22pt !important; max-width: 60pt !important; border: .5pt solid #cbd5e1 !important; border-radius: 3px !important; object-fit: contain; }
+    .print-batch .print-name-cell.has-print-image { min-height: 90pt; justify-content: center; }
+    .print-batch .print-student-image { display: block; flex: 0 0 auto; width: auto !important; height: 90pt !important; max-width: 100% !important; border: .5pt solid #cbd5e1 !important; border-radius: 3px !important; object-fit: contain; object-position: center; margin-inline: auto; }
     .print-batch .print-tag-list { display: inline-flex; flex-wrap: wrap; gap: 2pt; }
     .print-batch .print-student-tag { display: inline-block; padding: 1pt 4pt; border: .5pt solid #047857 !important; border-radius: 3pt; background: #047857 !important; box-shadow: none; color: #fff !important; font-size: 7pt; white-space: nowrap; transform: rotate(10deg); }
     .print-batch .print-signature { border: none !important; padding: 4pt 12pt 0 0 !important; color: #1e3a8a !important; text-align: left !important; font-size: 9pt !important; font-weight: 700 !important; }

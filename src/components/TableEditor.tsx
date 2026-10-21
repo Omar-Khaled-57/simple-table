@@ -234,7 +234,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
   };
 
   const getTier = (value: string) => {
-    if (value === '#') return 'tier-a';
+    if (value === '#') return 'tier-d';
     const num = parseFloat(value);
     if (isNaN(num)) return '';
     if (num >= 18) return 'tier-a';
@@ -485,7 +485,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     key={cell.id}
                     className={`grade-cell border border-slate-200 dark:border-gray-700 px-2 py-1.5 text-sm ${col?.type === 'grade' ? 'text-center' : 'text-right'}`}
                   >
-                    <div className={col?.type === 'grade' ? '' : 'name-cell-wrapper'}>
+                    <div className={col?.type === 'grade' ? '' : `name-cell-wrapper items-center justify-between${cell.image ? ' has-student-image' : ''}`}>
                     {isNameCell && cell.image && (
                       <img
                         src={cell.image}

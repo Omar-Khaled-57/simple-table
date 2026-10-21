@@ -6,7 +6,7 @@ interface PrintTableProps {
 }
 
 const getGradeTier = (value: string) => {
-  if (value === '#') return 'tier-a';
+  if (value === '#') return 'tier-d';
   const grade = Number.parseFloat(value);
   if (!Number.isFinite(grade)) return '';
   if (grade >= 18) return 'tier-a';
@@ -49,7 +49,7 @@ export default function PrintTable({ table, tableStyle }: PrintTableProps) {
 
               return (
                 <td key={cell.id}>
-                  <div className="print-name-cell">
+                  <div className={`print-name-cell${cell.image ? ' has-print-image' : ''}`}>
                     <span className="print-cell-value">{cell.value}</span>
                     {cell.image && <img src={cell.image} alt="" className="print-student-image" />}
                     {cell.tags?.length ? (
