@@ -64,8 +64,16 @@
 .dark .toolbar-button-active { background: #172554; border-color: #1d4ed8; color: #bfdbfe; }
 
 .grade-table { overflow: hidden; border-radius: 0.7rem; }
-.grade-table th, .grade-table td { border-inline-start-color: #cbd5e1 !important; }
-.dark .grade-table th, .dark .grade-table td { border-color: #0b1220 !important; }
+.grade-table tbody td.grade-cell {
+  border-inline-start: 1px solid #cbd5e1 !important;
+  border-inline-end: 1px solid #cbd5e1 !important;
+  border-block-color: #cbd5e1 !important;
+}
+.dark .grade-table tbody td.grade-cell {
+  border-inline-start-color: #475569 !important;
+  border-inline-end-color: #475569 !important;
+  border-block-color: #475569 !important;
+}
 .grade-table .grade-row { transition: background-color 250ms var(--smooth); }
 .grade-table.soft .grade-row:nth-child(even) { background: #f1f5f9; }
 .grade-table.soft .grade-row:hover { background: #eff6ff; }
