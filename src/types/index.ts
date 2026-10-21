@@ -24,6 +24,7 @@ export interface TableData {
   name: string;
   columns: TableColumn[];
   rows: TableRow[];
+  signature?: string;
 }
 
 export interface AppState {

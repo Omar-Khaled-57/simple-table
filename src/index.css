@@ -123,6 +123,23 @@
 .column-resize-handle:hover,
 .column-resize-handle:active { background: #2563eb; opacity: 0.85; }
 
+.signature-input {
+  display: inline-block;
+  width: 14rem;
+  max-width: 100%;
+  padding: 0.1rem 0.25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  outline: none;
+  box-shadow: none;
+}
+.signature-input:focus { background: rgba(37, 99, 235, 0.08); }
+.dark .signature-input:focus { background: rgba(96, 165, 250, 0.14); }
+
 /* Sticky index column for horizontal scroll on small screens */
 .grade-table .sticky-col { position: sticky; inset-inline-start: 0; z-index: 6; }
 .grade-table th.sticky-col { z-index: 12; background-image: linear-gradient(180deg, #eff6ff 0%, #cbd5e1 100%); }

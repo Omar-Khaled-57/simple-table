@@ -20,7 +20,8 @@ const createDefaultTable = (): TableData => {
     id: generateId(),
     name: 'كشف نتيجة الامتحان الشامل الأول',
     columns,
-    rows
+    rows,
+    signature: 'عمر'
   };
 };
 

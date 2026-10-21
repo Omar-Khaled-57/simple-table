@@ -64,7 +64,7 @@ export default function PrintTable({ table }: PrintTableProps) {
         ))}
       </tbody>
       <tfoot>
-        <tr><td colSpan={table.columns.length + 1} className="print-signature">عمر</td></tr>
+        <tr><td colSpan={table.columns.length + 1} className="print-signature">{table.signature || 'عمر'}</td></tr>
       </tfoot>
     </table>
   );

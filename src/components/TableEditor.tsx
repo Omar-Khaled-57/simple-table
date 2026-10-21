@@ -313,7 +313,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                 aria-expanded={styleMenuOpen}
                 className="w-full lg:w-auto justify-center px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
               >
-                <Palette className="w-4 h-4" /> تنسيق {tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
+                <Palette className="w-4 h-4" /> <span className="portrait:hidden">تنسيق</span>{tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
                 <ChevronDown className="w-4 h-4 opacity-80" />
               </button>
               {styleMenuOpen && (
@@ -549,7 +549,17 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         <tfoot>
           <tr>
             <td colSpan={table.columns.length + 1} className="signature-cell border-0 px-2 py-4 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
-              عمر
+              {editMode ? (
+                <input
+                  type="text"
+                  value={table.signature ?? 'عمر'}
+                  onChange={(e) => onUpdate({ ...table, signature: e.target.value })}
+                  className="signature-input"
+                  aria-label="التوقيع"
+                />
+              ) : (
+                table.signature || 'عمر'
+              )}
             </td>
           </tr>
         </tfoot>
