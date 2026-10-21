@@ -303,7 +303,7 @@ export default function App() {
                     <div className="print-stat"><span>أعلى درجة</span><strong>{printStats.max}</strong></div>
                   </div>
                 </header>
-                <PrintTable table={table} />
+                <PrintTable table={table} tableStyle={tableStyle} />
                 {index < printJob.tableIds.length - 1 && <div className="print-page-break" />}
               </section>
             );

@@ -202,7 +202,7 @@
     .print-batch { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #111827 !important; font-family: 'Cairo','Noto Sans Arabic',sans-serif !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .print-sheet { width: 100%; break-inside: auto; }
     .print-page-break { height: 0; break-after: page; }
-    .print-title-band { display: flex !important; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5pt; width: 100%; margin: 0 0 5pt; padding: 5pt 8pt; border-radius: 5pt; color: #fff !important; background: linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%) !important; box-shadow: none !important; break-inside: avoid; }
+    .print-title-band { display: flex !important; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5pt; width: 100%; margin: 0 0 5pt; padding: 5pt 8pt; border-radius: 8pt; color: #fff !important; background: linear-gradient(135deg,#1e3a8a 0%,#2563eb 55%,#3b82f6 100%) !important; box-shadow: none !important; break-inside: avoid; }
     .print-title-copy { flex: 1 1 180pt; min-width: 0; }
     .print-title-copy h1 { margin: 0; padding: 0 0 3pt; border-bottom: 1pt solid rgba(255,255,255,.4); color: #fff !important; font-size: 13pt; font-weight: 700; line-height: 1.25; text-align: right; overflow-wrap: anywhere; }
     .print-stat-list { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 3pt; }
@@ -211,13 +211,15 @@
     .print-stat strong { display: block; color: #fff !important; font-size: 9pt; line-height: 1.2; }
     .print-stat small { margin-inline-end: 2pt; font-size: 8pt; }
     .table-control-strip { display: none !important; }
-    .print-batch .print-grade-table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; border-radius: 0 !important; overflow: visible !important; margin: 0 !important; page-break-inside: auto; }
+    .print-batch .print-grade-table { width: 100% !important; max-width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; border-radius: 5pt !important; overflow: hidden !important; margin: 0 !important; page-break-inside: auto; background: #fff !important; }
     .print-batch thead { display: table-header-group; }
     .print-batch tfoot { display: table-footer-group; }
     .print-batch tr { break-inside: avoid; page-break-inside: avoid; }
     .print-batch th, .print-batch td { overflow: hidden; border: .5pt solid #cbd5e1 !important; padding: 1pt 3pt !important; color: #1e293b !important; font-size: 8pt !important; line-height: 1.15 !important; vertical-align: middle; }
-    .print-batch th { position: static !important; z-index: auto !important; padding: 2.5pt 3pt !important; color: #1e3a8a !important; background: linear-gradient(180deg,#eff6ff 0%,#dbe4f0 100%) !important; border-bottom: 1pt solid #2563eb !important; font-weight: 700 !important; text-align: right; }
-    .print-batch tbody tr:nth-child(even) { background: #f6f9fd !important; }
+    .print-batch th { position: static !important; z-index: auto !important; padding: 2.5pt 3pt !important; color: #1e3a8a !important; background: linear-gradient(180deg,#eff6ff 0%,#e2e8f0 100%) !important; border-bottom: 1pt solid #2563eb !important; font-weight: 700 !important; text-align: right; }
+    .print-batch .print-grade-table.classic tbody tr:nth-child(even) { background: #e2e8f0 !important; }
+    .print-batch .print-grade-table.soft tbody tr:nth-child(even) { background: #f1f5f9 !important; }
+    .print-batch .print-grade-table.compact tbody tr { background: #fff !important; }
     .print-batch .print-row-index, .print-batch .print-grade-cell { text-align: center !important; }
     .print-batch .print-grade-pill { display: inline-block; min-width: 34pt; padding: 1pt 4pt; border: .5pt solid transparent; border-radius: 999px; text-align: center; font-weight: 700; }
     .print-batch .print-grade-pill.tier-a { background: #d1fae5 !important; color: #065f46 !important; border-color: #6ee7b7 !important; }
@@ -229,8 +231,21 @@
     .print-batch .print-student-image { height: 22pt !important; max-width: 60pt !important; border: .5pt solid #cbd5e1 !important; border-radius: 3px !important; object-fit: contain; }
     .print-batch .print-tag-list { display: inline-flex; flex-wrap: wrap; gap: 2pt; }
     .print-batch .print-student-tag { display: inline-block; padding: 1pt 4pt; border: .5pt solid #047857 !important; border-radius: 3pt; background: #047857 !important; box-shadow: none; color: #fff !important; font-size: 7pt; white-space: nowrap; transform: rotate(10deg); }
-    .print-batch .print-signature { border: none !important; padding: 4pt 0 0 !important; color: #1e3a8a !important; text-align: left !important; font-size: 9pt !important; font-weight: 700 !important; }
+    .print-batch .print-signature { border: none !important; padding: 4pt 12pt 0 0 !important; color: #1e3a8a !important; text-align: left !important; font-size: 9pt !important; font-weight: 700 !important; }
     .print-batch button { display: none !important; }
+    .dark .print-batch { background: #111827 !important; color: #f9fafb !important; }
+    .dark .print-batch .print-grade-table { background: #111827 !important; }
+    .dark .print-batch th, .dark .print-batch td { border-color: #475569 !important; color: #e2e8f0 !important; }
+    .dark .print-batch th { color: #f1f5f9 !important; background: #1f2937 !important; border-bottom-color: #60a5fa !important; }
+    .dark .print-batch .print-grade-table.classic tbody tr:nth-child(even) { background: #2b3648 !important; }
+    .dark .print-batch .print-grade-table.soft tbody tr:nth-child(even) { background: #202b3b !important; }
+    .dark .print-batch .print-grade-table.compact tbody tr { background: #111827 !important; }
+    .dark .print-batch .print-signature { color: #93c5fd !important; }
+    .dark .print-batch .print-grade-pill.tier-a { background: #064e3b !important; color: #a7f3d0 !important; border-color: #047857 !important; }
+    .dark .print-batch .print-grade-pill.tier-b { background: #1e3a8a !important; color: #bfdbfe !important; border-color: #1d4ed8 !important; }
+    .dark .print-batch .print-grade-pill.tier-c { background: #78350f !important; color: #fde68a !important; border-color: #b45309 !important; }
+    .dark .print-batch .print-grade-pill.tier-d { background: #881337 !important; color: #fecdd3 !important; border-color: #be123c !important; }
+    .dark .print-batch .print-student-tag { background: #064e3b !important; color: #d1fae5 !important; border-color: #10b981 !important; }
   }
 }
 

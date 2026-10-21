@@ -2,6 +2,7 @@ import type { TableData } from '../types';
 
 interface PrintTableProps {
   table: TableData;
+  tableStyle: 'classic' | 'soft' | 'compact';
 }
 
 const getGradeTier = (value: string) => {
@@ -14,11 +15,11 @@ const getGradeTier = (value: string) => {
   return 'tier-d';
 };
 
-export default function PrintTable({ table }: PrintTableProps) {
+export default function PrintTable({ table, tableStyle }: PrintTableProps) {
   const totalColumnWidth = table.columns.reduce((sum, column) => sum + (column.width || 150), 0);
 
   return (
-    <table className="print-grade-table">
+    <table className={`print-grade-table ${tableStyle}`}>
       <colgroup>
         <col style={{ width: '7%' }} />
         {table.columns.map(column => (

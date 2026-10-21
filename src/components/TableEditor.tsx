@@ -556,7 +556,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={table.columns.length + 1} className="signature-cell border-0 px-2 py-4 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
+            <td colSpan={table.columns.length + 1} className="signature-cell border-0 px-2 py-4 pr-6 sm:pr-8 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
               {editMode ? (
                 <input
                   type="text"
