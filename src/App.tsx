@@ -195,26 +195,26 @@ export default function App() {
             <div className="stats-grid grid grid-cols-2 sm:flex sm:flex-wrap gap-2 flex-shrink-0 w-full sm:w-auto">
               <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
                 <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">عدد الطلاب</span>
-                <span className="block text-base md:text-lg font-bold">{stats.count}</span>
+                <span key={stats.count} className="stat-value block text-base md:text-lg font-bold">{stats.count}</span>
               </div>
               <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
                 <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">المعدل</span>
-                <span className="block text-base md:text-lg font-bold">{stats.avg}</span>
+                <span key={stats.avg} className="stat-value block text-base md:text-lg font-bold">{stats.avg}</span>
               </div>
               <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
                 <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">الأغلب</span>
-                <span className="block text-base md:text-lg font-bold"><span className="text-[10px] md:text-[11px] mr-1">({stats.modeCount})</span>{stats.mode}</span>
+                <span key={`${stats.mode}-${stats.modeCount}`} className="stat-value block text-base md:text-lg font-bold"><span className="text-[10px] md:text-[11px] mr-1">({stats.modeCount})</span>{stats.mode}</span>
               </div>
               <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
                 <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">أعلى درجة</span>
-                <span className="block text-base md:text-lg font-bold">{stats.max}</span>
+                <span key={stats.max} className="stat-value block text-base md:text-lg font-bold">{stats.max}</span>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="save-dot w-2 h-2 rounded-full bg-emerald-500" />
               محفوظ تلقائياً على هذا الجهاز
             </div>
             <div className="flex flex-wrap items-center gap-2">

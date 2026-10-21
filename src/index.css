@@ -11,6 +11,8 @@
     --bg: #eef2f7;
     --border: #cbd5e1;
     --footer-color: #1e3a8a;
+    --spring: cubic-bezier(0.34, 1.45, 0.5, 1);
+    --smooth: cubic-bezier(0.22, 1, 0.36, 1);
   }
   
   * {
@@ -41,9 +43,10 @@
   padding: 0.55rem 0.8rem;
   font-size: 0.8rem;
   font-weight: 700;
-  transition: background-color 150ms, border-color 150ms, color 150ms, transform 150ms;
+  transition: background-color 200ms, border-color 200ms, color 200ms, transform 320ms var(--spring), box-shadow 320ms;
 }
-.toolbar-button:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-1px); }
+.toolbar-button:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px) scale(1.03); box-shadow: 0 8px 18px -10px rgba(30, 58, 138, 0.45); }
+.toolbar-button:active { transform: translateY(0) scale(0.95); }
 .toolbar-button-active { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
 .dark .toolbar-button { background: #1f2937; border-color: #374151; color: #e2e8f0; }
 .sort-menu-item { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 0.75rem; border-radius: 0.55rem; padding: 0.65rem 0.75rem; color: #334155; font-size: 0.85rem; font-weight: 700; text-align: right; transition: background-color 120ms; }
@@ -61,7 +64,7 @@
 .dark .toolbar-button-active { background: #172554; border-color: #1d4ed8; color: #bfdbfe; }
 
 .grade-table { overflow: hidden; border-radius: 0.7rem; }
-.grade-table .grade-row { transition: background-color 120ms ease; }
+.grade-table .grade-row { transition: background-color 250ms var(--smooth); }
 .grade-table.soft .grade-row:nth-child(even) { background: #f8fafc; }
 .grade-table.soft .grade-row:hover { background: #eff6ff; }
 .dark .grade-table.soft .grade-row:nth-child(even) { background: #111827; }
@@ -230,4 +233,186 @@
   .table-scroll { margin-inline: -0.25rem; padding-inline: 0.25rem; }
   .column-resize-handle { width: 6px; }
   .column-resize-handle::before { width: 22px; inset-inline-end: -11px; }
+}
+
+/* ============ Smooth & fun motion system ============ */
+@keyframes pop-in {
+  0% { opacity: 0; transform: translateY(10px) scale(0.94); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes drop-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes modal-in {
+  0% { opacity: 0; transform: translateY(18px) scale(0.92); }
+  70% { opacity: 1; transform: translateY(-3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes value-pop {
+  0% { opacity: 0.35; transform: scale(0.75); }
+  60% { opacity: 1; transform: scale(1.18); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes gradient-pan {
+  from { background-position: 0% 50%; }
+  to { background-position: 100% 50%; }
+}
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+  70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes spin-in {
+  from { opacity: 0; transform: rotate(-140deg) scale(0.5); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+/* Page entrance */
+.app-shell { animation: pop-in 0.6s var(--spring) both; }
+
+/* Title band: slow living gradient */
+.report-band {
+  background-size: 220% 220%;
+  animation: gradient-pan 14s var(--smooth) infinite alternate;
+}
+
+/* Stats cards */
+.stats-grid > * { animation: pop-in 0.55s var(--spring) both; transition: transform 320ms var(--spring), background-color 250ms; }
+.stats-grid > *:nth-child(1) { animation-delay: 60ms; }
+.stats-grid > *:nth-child(2) { animation-delay: 120ms; }
+.stats-grid > *:nth-child(3) { animation-delay: 180ms; }
+.stats-grid > *:nth-child(4) { animation-delay: 240ms; }
+.stats-grid > div:hover { transform: translateY(-3px) scale(1.05); }
+.stat-value { display: inline-block; transform-origin: center; animation: value-pop 0.5s var(--spring); }
+
+/* Auto-save pulse dot */
+.save-dot { animation: pulse-dot 2.4s ease-out infinite; }
+
+/* Tabs */
+.tabs-scroll > div { transition: transform 320ms var(--spring), background-color 220ms, color 220ms; }
+.tabs-scroll > div:hover { transform: translateY(-2px); }
+.tabs-scroll > div:active { transform: translateY(0) scale(0.96); }
+.tabs-scroll > button { transition: transform 320ms var(--spring), background-color 220ms; }
+.tabs-scroll > button:hover { transform: translateY(-2px) scale(1.04); }
+.tabs-scroll > div > button { transition: transform 420ms var(--spring); }
+.tabs-scroll > div > button:hover svg { transform: rotate(90deg) scale(1.15); }
+
+/* Control strip: staggered entrance + edit-mode glow */
+.table-control-strip { transition: background-color 350ms var(--smooth), border-color 350ms, box-shadow 500ms var(--smooth); }
+.table-control-strip.bg-blue-50 { box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 10px 26px -14px rgba(37, 99, 235, 0.45); }
+.dark .table-control-strip.dark\:bg-blue-950\/40 { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.18), 0 10px 26px -14px rgba(37, 99, 235, 0.5); }
+.table-control-strip > * { animation: pop-in 0.5s var(--spring) both; }
+.table-control-strip > *:nth-child(1) { animation-delay: 40ms; }
+.table-control-strip > *:nth-child(2) { animation-delay: 80ms; }
+.table-control-strip > *:nth-child(3) { animation-delay: 120ms; }
+.table-control-strip > *:nth-child(4) { animation-delay: 160ms; }
+.table-control-strip > *:nth-child(5) { animation-delay: 200ms; }
+.table-control-strip > *:nth-child(6) { animation-delay: 240ms; }
+.table-control-strip > *:nth-child(7) { animation-delay: 280ms; }
+
+/* Strip & modal buttons: lift on hover, press on tap */
+.table-control-strip button:not(.edit-icon-button):not(:disabled),
+.modal-panel button:not(:disabled) {
+  transition: transform 320ms var(--spring), background-color 220ms, border-color 220ms, color 220ms, box-shadow 320ms;
+}
+.table-control-strip button:not(.edit-icon-button):not(:disabled):hover,
+.modal-panel button:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 10px 20px -12px rgba(15, 23, 42, 0.45);
+}
+.table-control-strip button:not(.edit-icon-button):not(:disabled):active,
+.modal-panel button:not(:disabled):active {
+  transform: translateY(0) scale(0.94);
+  box-shadow: none;
+}
+.table-control-strip svg { transition: transform 420ms var(--spring); }
+.table-control-strip button:hover svg { transform: scale(1.18) rotate(-6deg); }
+.toolbar-button svg { transition: transform 550ms var(--spring); }
+.toolbar-button:hover svg { transform: rotate(14deg) scale(1.15); }
+
+/* Dropdown menus */
+.sort-menu, .style-menu {
+  transform-origin: top right;
+  animation: drop-in 0.35s var(--spring) both;
+}
+.sort-menu > *, .style-menu > * { animation: pop-in 0.4s var(--spring) both; }
+.sort-menu > *:nth-child(1), .style-menu > *:nth-child(1) { animation-delay: 40ms; }
+.sort-menu > *:nth-child(2), .style-menu > *:nth-child(2) { animation-delay: 80ms; }
+.sort-menu > *:nth-child(3), .style-menu > *:nth-child(3) { animation-delay: 120ms; }
+.sort-menu-item, .style-menu-item { transition: background-color 180ms, color 180ms, transform 280ms var(--spring), padding 280ms var(--spring); }
+.sort-menu-item:hover, .style-menu-item:hover { transform: translateX(-3px); }
+
+/* Table: header + rows cascade in */
+.grade-table thead th { animation: pop-in 0.5s var(--spring) both; }
+.grade-table thead th:nth-child(1) { animation-delay: 0ms; }
+.grade-table thead th:nth-child(2) { animation-delay: 50ms; }
+.grade-table thead th:nth-child(3) { animation-delay: 100ms; }
+.grade-table thead th:nth-child(4) { animation-delay: 150ms; }
+.grade-table thead th:nth-child(5) { animation-delay: 200ms; }
+.grade-table tbody tr { animation: row-in 0.45s var(--smooth) both; }
+.grade-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.grade-table tbody tr:nth-child(2) { animation-delay: 22ms; }
+.grade-table tbody tr:nth-child(3) { animation-delay: 44ms; }
+.grade-table tbody tr:nth-child(4) { animation-delay: 66ms; }
+.grade-table tbody tr:nth-child(5) { animation-delay: 88ms; }
+.grade-table tbody tr:nth-child(6) { animation-delay: 110ms; }
+.grade-table tbody tr:nth-child(7) { animation-delay: 132ms; }
+.grade-table tbody tr:nth-child(8) { animation-delay: 154ms; }
+.grade-table tbody tr:nth-child(9) { animation-delay: 176ms; }
+.grade-table tbody tr:nth-child(10) { animation-delay: 198ms; }
+.grade-table tbody tr:nth-child(11) { animation-delay: 220ms; }
+.grade-table tbody tr:nth-child(12) { animation-delay: 242ms; }
+.grade-table tbody tr:nth-child(n+13) { animation-delay: 260ms; }
+
+/* Per-column edit tools + resize handle */
+.table-edit-tools > button { animation: pop-in 0.4s var(--spring) both; }
+.table-edit-tools > button:nth-child(1) { animation-delay: 0ms; }
+.table-edit-tools > button:nth-child(2) { animation-delay: 35ms; }
+.table-edit-tools > button:nth-child(3) { animation-delay: 70ms; }
+.table-edit-tools > button:nth-child(4) { animation-delay: 105ms; }
+.table-edit-tools > button:nth-child(5) { animation-delay: 140ms; }
+.column-resize-handle { transition: background-color 200ms ease, transform 280ms var(--spring); }
+.column-resize-handle:hover, .column-resize-handle:active { transform: scaleX(1.5); }
+
+/* Cells & fun focus pops */
+input[type="text"], textarea { transition: background-color 200ms ease, box-shadow 280ms var(--smooth); }
+.grade-value { transition: transform 320ms var(--spring); }
+.grade-value:focus { transform: scale(1.08); }
+.signature-input { transition: background-color 250ms var(--smooth), transform 320ms var(--spring); }
+.signature-input:focus { transform: scale(1.02); }
+.student-tag { animation: pop-in 0.4s var(--spring) both; }
+.tag-add-button, .tag-remove-button { transition: transform 280ms var(--spring), background-color 180ms; }
+.tag-add-button:hover, .tag-remove-button:hover { transform: scale(1.18); }
+.image-cell-button { transition: background-color 180ms, transform 280ms var(--spring); }
+.image-cell-button:hover { transform: scale(1.15); }
+.student-image { transition: transform 350ms var(--spring), border-color 250ms; }
+.student-image:hover { transform: scale(1.04) rotate(-0.5deg); }
+
+/* Print modal */
+.print-modal-overlay { animation: overlay-in 0.3s ease both; }
+.modal-panel {
+  transform-origin: center;
+  animation: modal-in 0.55s var(--spring) both;
+}
+.modal-panel label { transition: transform 280ms var(--spring), background-color 200ms; }
+.modal-panel label:hover { transform: scale(1.02); }
+
+/* Reduced motion: respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

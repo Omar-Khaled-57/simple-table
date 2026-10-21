@@ -55,7 +55,7 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
 
   return (
     <div className="print-modal-overlay fixed inset-0 bg-slate-950/55 backdrop-blur-sm flex items-center justify-center z-50 p-4" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="print-dialog-title" className="font-cairo bg-white dark:bg-gray-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-auto border border-slate-200 dark:border-gray-700">
+      <div role="dialog" aria-modal="true" aria-labelledby="print-dialog-title" className="modal-panel font-cairo bg-white dark:bg-gray-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-auto border border-slate-200 dark:border-gray-700">
         <div className="bg-gradient-to-br from-[#1e3a8a] via-[#2563eb] to-[#3b82f6] text-white px-6 py-5 flex items-center justify-between">
           <h2 id="print-dialog-title" className="text-xl font-bold">طباعة الجداول</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/15 transition-colors" aria-label="إغلاق نافذة الطباعة">
