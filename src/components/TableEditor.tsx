@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TableData, TableRow } from '../types';
 import { generateId } from '../utils/tdaim';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, X, Minus, Maximize2, ImagePlus, Edit3, Printer, ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, Palette, Check } from 'lucide-react';
@@ -18,8 +18,24 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
   const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; rtl: boolean } | null>(null);
   const [sortKey, setSortKey] = useState<'name' | 'grade'>('grade');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
-  const [sortMenuOpen, setSortMenuOpen] = useState(false);
-  const [styleMenuOpen, setStyleMenuOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<'sort' | 'style' | null>(null);
+  const toggleMenu = (menu: 'sort' | 'style') => setOpenMenu(current => (current === menu ? null : menu));
+  useEffect(() => {
+    if (!openMenu) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || !target.closest('.sort-menu, .style-menu, [aria-haspopup="menu"]')) setOpenMenu(null);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenMenu(null);
+    };
+    window.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [openMenu]);
   const [imageTarget, setImageTarget] = useState<{ rowId: string; cellId: string } | null>(null);
   const updateTable = (updates: Partial<TableData>) => {
     onUpdate({ ...table, ...updates });
@@ -103,7 +119,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     updateTable({ rows: sortedRows });
     setSortKey(key);
     setSortDirection(direction);
-    setSortMenuOpen(false);
+    setOpenMenu(null);
   };
 
   const removeRow = (rowId: string) => {
@@ -270,21 +286,20 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               <Edit3 className="w-4 h-4" /> {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
             </button>
           )}
-          {editMode && (
           <button
             onClick={addColumn}
-            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors"
+            disabled={!editMode}
+            className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors`}
           >
             <Plus className="w-4 h-4" />
             إضافة عمود
           </button>
-          )}
           <div className="relative w-full lg:w-auto">
             <button
-              onClick={() => setSortMenuOpen(open => !open)}
+              onClick={() => toggleMenu('sort')}
               onDoubleClick={() => sortRows(sortKey)}
               aria-haspopup="menu"
-              aria-expanded={sortMenuOpen}
+              aria-expanded={openMenu === 'sort'}
               className="w-full lg:w-auto justify-center px-3.5 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
               title="خيارات الترتيب"
             >
@@ -292,40 +307,36 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               {sortDirection ? `ترتيب ${sortKey === 'grade' ? 'الدرجة' : 'الاسم'} ${sortDirection === 'asc' ? 'تصاعدي' : 'تنازلي'}` : 'ترتيب حسب'}
               <ChevronDown className="w-4 h-4 opacity-80" />
             </button>
-            {sortMenuOpen && (
-              <div className="sort-menu absolute right-0 top-full z-30 mt-2 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800" role="menu" aria-label="ترتيب الجدول">
-                <button type="button" role="menuitemradio" aria-checked={sortKey === 'name'} onClick={() => sortRows('name')} className="sort-menu-item" dir="rtl">
-                  <span>الاسم</span>
-                  <span className="sort-menu-direction">{sortKey === 'name' && sortDirection ? (sortDirection === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓') : 'تنازلي أولاً'}</span>
-                </button>
-                <button type="button" role="menuitemradio" aria-checked={sortKey === 'grade'} disabled={!table.columns.some(column => column.type === 'grade')} onClick={() => sortRows('grade')} className="sort-menu-item" dir="rtl">
-                  <span>الدرجة</span>
-                  <span className="sort-menu-direction">{sortKey === 'grade' && sortDirection ? (sortDirection === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓') : 'تنازلي أولاً'}</span>
-                </button>
-              </div>
-            )}
+            <div className={`dropdown-menu sort-menu absolute right-0 top-full z-30 mt-2 w-52 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800${openMenu === 'sort' ? ' is-open' : ''}`} role="menu" aria-label="ترتيب الجدول">
+              <button type="button" role="menuitemradio" aria-checked={sortKey === 'name'} onClick={() => sortRows('name')} className="sort-menu-item" dir="rtl">
+                <span>الاسم</span>
+                <span className="sort-menu-direction">{sortKey === 'name' && sortDirection ? (sortDirection === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓') : 'تنازلي أولاً'}</span>
+              </button>
+              <button type="button" role="menuitemradio" aria-checked={sortKey === 'grade'} disabled={!table.columns.some(column => column.type === 'grade')} onClick={() => sortRows('grade')} className="sort-menu-item" dir="rtl">
+                <span>الدرجة</span>
+                <span className="sort-menu-direction">{sortKey === 'grade' && sortDirection ? (sortDirection === 'asc' ? 'تصاعدي ↑' : 'تنازلي ↓') : 'تنازلي أولاً'}</span>
+              </button>
+            </div>
           </div>
           {onTableStyleChange && (
             <div className="relative w-full lg:w-auto">
               <button
-                onClick={() => setStyleMenuOpen(open => !open)}
+                onClick={() => toggleMenu('style')}
                 aria-haspopup="menu"
-                aria-expanded={styleMenuOpen}
+                aria-expanded={openMenu === 'style'}
                 className="w-full lg:w-auto justify-center px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
               >
                 <Palette className="w-4 h-4" /> <span className="portrait:hidden">تنسيق</span>{tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
                 <ChevronDown className="w-4 h-4 opacity-80" />
               </button>
-              {styleMenuOpen && (
-                <div className="style-menu absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800" role="menu" aria-label="تنسيق الجدول">
-                  {(['classic', 'soft', 'compact'] as const).map(style => (
-                    <button key={style} type="button" role="menuitemradio" aria-checked={tableStyle === style} onClick={() => { onTableStyleChange(style); setStyleMenuOpen(false); }} className="style-menu-item" dir="rtl">
-                      <span>{style === 'classic' ? 'كلاسيكي' : style === 'soft' ? 'ناعم' : 'مضغوط'}</span>
-                      {tableStyle === style && <Check className="w-4 h-4" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className={`dropdown-menu style-menu absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800${openMenu === 'style' ? ' is-open' : ''}`} role="menu" aria-label="تنسيق الجدول">
+                {(['classic', 'soft', 'compact'] as const).map(style => (
+                  <button key={style} type="button" role="menuitemradio" aria-checked={tableStyle === style} onClick={() => { onTableStyleChange(style); setOpenMenu(null); }} className="style-menu-item" dir="rtl">
+                    <span>{style === 'classic' ? 'كلاسيكي' : style === 'soft' ? 'ناعم' : 'مضغوط'}</span>
+                    {tableStyle === style && <Check className="w-4 h-4" />}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {onPrint && (
@@ -333,9 +344,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               <Printer className="w-4 h-4" /> طباعة
             </button>
           )}
-          {editMode && (
-            <span className="col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-amber-700 dark:text-amber-300 self-center">وضع التعديل نشط</span>
-          )}
+          <span aria-hidden={!editMode} className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-amber-700 dark:text-amber-300 self-center`}>وضع التعديل نشط</span>
       </div>
       <input
         ref={imageInputRef}
@@ -380,11 +389,10 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                 ) : (
                   <div className="text-right">{col.name}</div>
                 )}
-                {editMode && (
-                  <div className="table-edit-tools flex flex-wrap gap-1 mt-2 justify-center">
+                <div className={`table-edit-tools edit-reveal-v flex flex-wrap gap-1 mt-2 justify-center${editMode ? '' : ' edit-reveal-v-hidden'}`} aria-hidden={!editMode}>
                     <button
                       onClick={() => moveColumnLeft(colIndex)}
-                      disabled={colIndex === 0}
+                      disabled={!editMode || colIndex === 0}
                       className="edit-icon-button disabled:opacity-30"
                       title="تحريك لليسار"
                     >
@@ -392,7 +400,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     </button>
                     <button
                       onClick={() => moveColumnRight(colIndex)}
-                      disabled={colIndex === table.columns.length - 1}
+                      disabled={!editMode || colIndex === table.columns.length - 1}
                       className="edit-icon-button disabled:opacity-30"
                       title="تحريك لليمين"
                     >
@@ -400,28 +408,29 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     </button>
                     <button
                       onClick={() => resizeColumn(colIndex, -15)}
-                      className="edit-icon-button"
+                      disabled={!editMode}
+                      className="edit-icon-button disabled:opacity-30"
                       title="تقليل العرض"
                     >
                       <Minus className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => resizeColumn(colIndex, 15)}
-                      className="edit-icon-button"
+                      disabled={!editMode}
+                      className="edit-icon-button disabled:opacity-30"
                       title="زيادة العرض"
                     >
                       <Maximize2 className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => removeColumn(colIndex)}
-                      disabled={table.columns.length <= 1}
+                      disabled={!editMode || table.columns.length <= 1}
                       className="edit-icon-button edit-icon-danger disabled:opacity-30"
                       title="حذف العمود"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                )}
                 {editMode && (
                   <div
                     className="column-resize-handle"
@@ -439,11 +448,10 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             <tr key={row.id} className="grade-row">
               <td className="grade-cell sticky-col border border-slate-200 dark:border-gray-700 px-2 py-1.5 text-center font-bold text-slate-500 dark:text-slate-400 text-sm">
                 {rowIndex + 1}
-                {editMode && (
-                  <div className="flex flex-col gap-0.5 mt-1">
+                <div className={`edit-reveal-v flex flex-col gap-0.5 mt-1${editMode ? '' : ' edit-reveal-v-hidden'}`} aria-hidden={!editMode}>
                     <button
                       onClick={() => moveRowUp(rowIndex)}
-                      disabled={rowIndex === 0}
+                      disabled={!editMode || rowIndex === 0}
                       className="edit-icon-button disabled:opacity-30 mx-auto"
                       title="تحريك لأعلى"
                     >
@@ -451,7 +459,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     </button>
                     <button
                       onClick={() => moveRowDown(rowIndex)}
-                      disabled={rowIndex === table.rows.length - 1}
+                      disabled={!editMode || rowIndex === table.rows.length - 1}
                       className="edit-icon-button disabled:opacity-30 mx-auto"
                       title="تحريك لأسفل"
                     >
@@ -459,13 +467,13 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     </button>
                     <button
                       onClick={() => removeRow(row.id)}
-                      className="edit-icon-button edit-icon-danger mx-auto"
+                      disabled={!editMode}
+                      className="edit-icon-button edit-icon-danger disabled:opacity-30 mx-auto"
                       title="حذف الصف"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </div>
-                )}
               </td>
               {row.cells.map((cell, cellIndex) => {
                 const col = table.columns[cellIndex];

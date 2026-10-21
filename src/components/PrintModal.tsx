@@ -53,6 +53,15 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
     onClose();
   };
 
+  const optionClass = (isSelected: boolean, isDisabled = false) => [
+    'flex items-center gap-3 rounded-lg border p-3 transition-colors',
+    isDisabled
+      ? 'cursor-not-allowed opacity-50 border-slate-200 dark:border-gray-700'
+      : isSelected
+        ? 'cursor-pointer border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950/40'
+        : 'cursor-pointer border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-800',
+  ].join(' ');
+
   return (
     <div className="print-modal-overlay fixed inset-0 bg-slate-950/55 backdrop-blur-sm flex items-center justify-center z-50 p-4" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="print-dialog-title" className="modal-panel font-cairo bg-white dark:bg-gray-900 text-slate-800 dark:text-slate-100 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-auto border border-slate-200 dark:border-gray-700">
@@ -67,7 +76,7 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">خيارات الطباعة</label>
             <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-slate-200 dark:border-gray-700 p-3 hover:bg-slate-50 dark:hover:bg-gray-800">
+              <label className={optionClass(printOption === 'all')}>
                 <input
                   type="radio"
                   name="printOption"
@@ -77,11 +86,11 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
                     setPrintOption(e.target.value as 'all' | 'some' | 'current');
                     setSelectedTables(tables.map(t => t.id));
                   }}
-                  className="w-4 h-4 accent-blue-600"
+                  className="choice-radio"
                 />
                 <span>طباعة جميع الجداول</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-slate-200 dark:border-gray-700 p-3 hover:bg-slate-50 dark:hover:bg-gray-800">
+              <label className={optionClass(printOption === 'current', !activeTableId)}>
                 <input
                   type="radio"
                   name="printOption"
@@ -92,18 +101,18 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
                     if (activeTableId) setSelectedTables([activeTableId]);
                   }}
                   disabled={!activeTableId}
-                  className="w-4 h-4 accent-blue-600"
+                  className="choice-radio"
                 />
                 <span>طباعة الجدول الحالي فقط</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer rounded-lg border border-slate-200 dark:border-gray-700 p-3 hover:bg-slate-50 dark:hover:bg-gray-800">
+              <label className={optionClass(printOption === 'some')}>
                 <input
                   type="radio"
                   name="printOption"
                   value="some"
                   checked={printOption === 'some'}
                   onChange={(e) => setPrintOption(e.target.value as 'all' | 'some' | 'current')}
-                  className="w-4 h-4 accent-blue-600"
+                  className="choice-radio"
                 />
                 <span>طباعة جداول محددة</span>
               </label>
@@ -115,12 +124,12 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
               <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">اختر الجداول</label>
               <div className="space-y-2 max-h-40 overflow-auto border border-slate-300 dark:border-gray-600 rounded-lg p-3">
                 {tables.map(table => (
-                  <label key={table.id} className="flex items-center gap-3 cursor-pointer rounded-md p-2 hover:bg-slate-50 dark:hover:bg-gray-800">
+                  <label key={table.id} className={`flex items-center gap-3 cursor-pointer rounded-md p-2 transition-colors ${selectedTables.includes(table.id) ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-slate-50 dark:hover:bg-gray-800'}`}>
                     <input
                       type="checkbox"
                       checked={selectedTables.includes(table.id)}
                       onChange={() => toggleTableSelection(table.id)}
-                      className="w-4 h-4 accent-blue-600"
+                      className="choice-checkbox"
                     />
                     <span className="text-sm">{table.name}</span>
                   </label>
