@@ -170,7 +170,8 @@ export default function App() {
   const stats = getStats();
 
   return (
-    <div className="min-h-screen bg-[#eef2f7] dark:bg-gray-950 font-cairo transition-colors" dir="rtl">
+    <main className="min-h-screen bg-[#eef2f7] dark:bg-gray-950 font-cairo transition-colors" dir="rtl">
+      <h1 className="sr-only">كشف نتيجة الامتحان | Simple Table</h1>
       <div className="w-full max-w-[1200px] mx-auto px-4 py-6 md:py-10">
         <div className="app-shell bg-white dark:bg-gray-900 rounded-2xl shadow-[0_20px_60px_-20px_rgba(15,23,42,0.28)] p-4 md:p-7 relative border border-slate-200/80 dark:border-gray-800">
           {/* Title Band - matching original */}
@@ -309,6 +310,6 @@ export default function App() {
           })}
         </div>
       )}
-    </div>
+    </main>
   );
 }

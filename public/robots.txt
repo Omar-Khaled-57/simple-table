@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Crawl-delay for polite bots
+Crawl-delay: 1
+
+Sitemap: https://omar-khaled-57.github.io/simple-table/sitemap.xml

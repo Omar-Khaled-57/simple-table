@@ -348,7 +348,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         }}
       />
 
-      <div className="table-scroll overflow-x-auto overscroll-x-contain rounded-lg border border-slate-200 dark:border-gray-700">
+      <div className="table-scroll overflow-x-auto overscroll-x-contain rounded-lg">
       <table
         className={`grade-table ${tableStyle} w-full border-collapse table-fixed`}
         id="gradeTable"
