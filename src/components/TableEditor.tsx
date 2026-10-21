@@ -329,7 +329,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             </div>
           )}
           {onPrint && (
-            <button onClick={onPrint} className="w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors">
+            <button onClick={onPrint} className={`${!editMode ? 'col-span-2 sm:col-span-2 lg:col-span-1' : ''} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors`}>
               <Printer className="w-4 h-4" /> طباعة
             </button>
           )}
