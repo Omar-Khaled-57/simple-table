@@ -4,7 +4,8 @@ import { generateId } from './utils/tdaim';
 import { useTdaim } from './hooks/useTdaim';
 import TableEditor from './components/TableEditor';
 import PrintModal from './components/PrintModal';
-import { Plus, X, Sun, Moon, Palette } from 'lucide-react';
+import PrintTable from './components/PrintTable';
+import { Plus, X, Sun, Moon } from 'lucide-react';
 
 const createDefaultTable = (): TableData => {
   const columns: TableColumn[] = [
@@ -20,6 +21,36 @@ const createDefaultTable = (): TableData => {
     name: 'كشف نتيجة الامتحان الشامل الأول',
     columns,
     rows
+  };
+};
+
+const getTableStats = (table: TableData) => {
+  const grades = table.rows
+    .map(row => {
+      const gradeCell = row.cells.find(cell => cell.type === 'grade');
+      if (!gradeCell) return NaN;
+      const value = gradeCell.value.trim();
+      if (value === '') return NaN;
+      if (value === '#') return 0;
+      return Number.parseFloat(value);
+    })
+    .filter(Number.isFinite);
+  const counts = new Map<number, number>();
+  grades.forEach(grade => counts.set(grade, (counts.get(grade) || 0) + 1));
+  let mode: number | null = null;
+  let modeCount = 0;
+  counts.forEach((count, grade) => {
+    if (count > modeCount || (count === modeCount && (mode === null || grade > mode))) {
+      mode = grade;
+      modeCount = count;
+    }
+  });
+  return {
+    count: table.rows.length,
+    avg: grades.length ? (grades.reduce((sum, grade) => sum + grade, 0) / grades.length).toFixed(1) : '0.0',
+    max: grades.length ? Math.max(...grades) : 0,
+    mode: mode ?? 0,
+    modeCount,
   };
 };
 
@@ -39,9 +70,8 @@ export default function App() {
   
   const [activeTableId, setActiveTableId] = useState<string>(() => tables[0]?.id || '');
   const [editMode, setEditMode] = useState(false);
-  const [styleMode, setStyleMode] = useState(false);
   const [tableStyle, setTableStyle] = useState<'classic' | 'soft' | 'compact'>(() =>
-    (localStorage.getItem('exam-table-style') as 'classic' | 'soft' | 'compact' | null) || 'soft'
+    (localStorage.getItem('exam-table-style') as 'classic' | 'soft' | 'compact' | null) || 'classic'
   );
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printJob, setPrintJob] = useState<{ title: string; tableIds: string[] } | null>(null);
@@ -115,34 +145,7 @@ export default function App() {
   };
 
   const getStats = () => {
-    if (!activeTable) return { count: 0, avg: 0, max: 0, mode: 0, modeCount: 0 };
-    
-    const grades = activeTable.rows
-      .map(r => {
-        const gradeCell = r.cells.find(c => c.type === 'grade');
-        if (!gradeCell) return NaN;
-        const v = gradeCell.value.trim();
-        if (v === '' || v === '#') return NaN;
-        return parseFloat(v);
-      })
-      .filter(v => !isNaN(v));
-    
-    const count = activeTable.rows.length;
-    const avg = grades.length ? grades.reduce((a, b) => a + b, 0) / grades.length : 0;
-    const max = grades.length ? Math.max(...grades) : 0;
-    
-    const counts = new Map<number, number>();
-    grades.forEach(g => counts.set(g, (counts.get(g) || 0) + 1));
-    let mode = 0;
-    let modeCount = 0;
-    counts.forEach((c, val) => {
-      if (c > modeCount || (c === modeCount && mode === 0)) {
-        modeCount = c;
-        mode = val;
-      }
-    });
-    
-    return { count, avg: avg.toFixed(1), max, mode: mode || 0, modeCount };
+    return activeTable ? getTableStats(activeTable) : { count: 0, avg: '0.0', max: 0, mode: 0, modeCount: 0 };
   };
 
   const stats = getStats();
@@ -152,7 +155,7 @@ export default function App() {
       <div className="w-full max-w-[1200px] mx-auto px-4 py-6 md:py-10">
         <div className="app-shell bg-white dark:bg-gray-900 rounded-2xl shadow-[0_20px_60px_-20px_rgba(15,23,42,0.28)] p-4 md:p-7 relative border border-slate-200/80 dark:border-gray-800">
           {/* Title Band - matching original */}
-          <div className="bg-gradient-to-br from-[#172554] via-[#1d4ed8] to-[#3b82f6] text-white rounded-xl p-4 md:p-5 mb-5 flex flex-wrap items-center justify-between gap-4 shadow-[0_10px_26px_-10px_rgba(37,99,235,0.65)]">
+          <div className="report-band text-white rounded-xl p-4 md:p-5 mb-5 flex flex-wrap items-center justify-between gap-4 shadow-[0_10px_26px_-10px_rgba(37,99,235,0.65)]">
             <input
               type="text"
               value={tableTitleInput}
@@ -196,17 +199,6 @@ export default function App() {
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {theme === 'light' ? 'الوضع الداكن' : 'الوضع الفاتح'}
               </button>
-              <button onClick={() => setStyleMode(!styleMode)} className={`toolbar-button ${styleMode ? 'toolbar-button-active' : ''}`}>
-                <Palette className="w-4 h-4" />
-                {styleMode ? 'إنهاء التنسيق' : 'تنسيق الجدول'}
-              </button>
-              {styleMode && (
-                <select value={tableStyle} onChange={e => setTableStyle(e.target.value as typeof tableStyle)} className="style-select" aria-label="نمط الجدول">
-                  <option value="soft">ناعم</option>
-                  <option value="classic">كلاسيكي</option>
-                  <option value="compact">مضغوط</option>
-                </select>
-              )}
             </div>
           </div>
 
@@ -257,6 +249,7 @@ export default function App() {
                 onUpdate={updateActiveTable}
                 onToggleEditMode={toggleEditMode}
                 onPrint={() => setShowPrintModal(true)}
+                onTableStyleChange={setTableStyle}
               />
             </div>
           )}
@@ -272,14 +265,27 @@ export default function App() {
       />
       {printJob && (
         <div className="print-batch hidden">
-          {tables.filter(table => printJob.tableIds.includes(table.id)).map((table, index) => (
-            <section className="print-sheet" key={table.id}>
-              <h1 className="print-batch-title">{printJob.title}</h1>
-              <h2 className="print-batch-table-title">{table.name}</h2>
-              <TableEditor table={table} editMode={false} tableStyle={tableStyle} onUpdate={() => {}} />
-              {index < printJob.tableIds.length - 1 && <div className="print-page-break" />}
-            </section>
-          ))}
+          {tables.filter(table => printJob.tableIds.includes(table.id)).map((table, index) => {
+            const printStats = getTableStats(table);
+            return (
+              <section className="print-sheet" key={table.id}>
+                <header className="print-title-band">
+                  <div className="print-title-copy">
+                    <h1>{printJob.title}</h1>
+                    <p>{table.name}</p>
+                  </div>
+                  <div className="print-stat-list">
+                    <div className="print-stat"><span>عدد الطلاب</span><strong>{printStats.count}</strong></div>
+                    <div className="print-stat"><span>المعدل</span><strong>{printStats.avg}</strong></div>
+                    <div className="print-stat"><span>الأغلب</span><strong><small>({printStats.modeCount})</small>{printStats.mode}</strong></div>
+                    <div className="print-stat"><span>أعلى درجة</span><strong>{printStats.max}</strong></div>
+                  </div>
+                </header>
+                <PrintTable table={table} />
+                {index < printJob.tableIds.length - 1 && <div className="print-page-break" />}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

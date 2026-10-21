@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { TableData, TableRow } from '../types';
 import { generateId } from '../utils/tdaim';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, X, Minus, Maximize2, ImagePlus, Edit3, Printer, ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, X, Minus, Maximize2, ImagePlus, Edit3, Printer, ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, Palette, Check } from 'lucide-react';
 
 interface TableEditorProps {
   table: TableData;
@@ -10,14 +10,16 @@ interface TableEditorProps {
   onUpdate: (table: TableData) => void;
   onToggleEditMode?: () => void;
   onPrint?: () => void;
+  onTableStyleChange?: (style: 'classic' | 'soft' | 'compact') => void;
 }
 
-export default function TableEditor({ table, editMode, tableStyle, onUpdate, onToggleEditMode, onPrint }: TableEditorProps) {
+export default function TableEditor({ table, editMode, tableStyle, onUpdate, onToggleEditMode, onPrint, onTableStyleChange }: TableEditorProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; factor: number } | null>(null);
   const [sortKey, setSortKey] = useState<'name' | 'grade'>('grade');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [styleMenuOpen, setStyleMenuOpen] = useState(false);
   const [imageTarget, setImageTarget] = useState<{ rowId: string; cellId: string } | null>(null);
   const updateTable = (updates: Partial<TableData>) => {
     onUpdate({ ...table, ...updates });
@@ -186,8 +188,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     e.stopPropagation();
     const th = (e.currentTarget as HTMLElement).closest('th');
     const startWidth = table.columns[colIndex].width || th?.offsetWidth || 150;
-    const rtl = document.documentElement.dir === 'rtl';
-    resizeRef.current = { colIndex, startX: e.clientX, startWidth, factor: rtl ? -1 : 1 };
+    const rtl = document.documentElement.dir === 'rtl' || document.dir === 'rtl';
+    resizeRef.current = { colIndex, startX: e.clientX, startWidth, factor: rtl ? 1 : 1, rtl } as any;
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     window.addEventListener('mousemove', onResizeMove);
@@ -195,10 +197,11 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
   };
 
   const onResizeMove = (e: MouseEvent) => {
-    const state = resizeRef.current;
+    const state: any = resizeRef.current;
     if (!state) return;
-    const dx = e.clientX - state.startX;
-    const newWidth = Math.max(50, Math.round(state.startWidth + dx * state.factor));
+    const rtl = state.rtl ?? (document.documentElement.dir === 'rtl');
+    const delta = rtl ? (state.startX - e.clientX) : (e.clientX - state.startX);
+    const newWidth = Math.max(50, Math.round(state.startWidth + delta));
     const newCols = table.columns.map((col, i) => i === state.colIndex ? { ...col, width: newWidth } : col);
     onUpdate({ ...table, columns: newCols });
   };
@@ -241,6 +244,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     return s;
   };
 
+  const totalColumnWidth = table.columns.reduce((sum, column) => sum + (column.width || 150), 0);
+
   return (
     <div className="w-full overflow-x-auto">
       <div className={`table-control-strip mb-3 flex flex-wrap items-center gap-2 p-2.5 rounded-xl border transition-colors ${editMode ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700'}`}>
@@ -255,6 +260,29 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             <button onClick={onPrint} className="px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors">
               <Printer className="w-4 h-4" /> طباعة
             </button>
+          )}
+          {onTableStyleChange && (
+            <div className="relative">
+              <button
+                onClick={() => setStyleMenuOpen(open => !open)}
+                aria-haspopup="menu"
+                aria-expanded={styleMenuOpen}
+                className="px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
+              >
+                <Palette className="w-4 h-4" /> تنسيق {tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
+                <ChevronDown className="w-4 h-4 opacity-80" />
+              </button>
+              {styleMenuOpen && (
+                <div className="style-menu absolute right-0 top-full z-30 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-gray-700 dark:bg-gray-800" role="menu" aria-label="تنسيق الجدول">
+                  {(['classic', 'soft', 'compact'] as const).map(style => (
+                    <button key={style} type="button" role="menuitemradio" aria-checked={tableStyle === style} onClick={() => { onTableStyleChange(style); setStyleMenuOpen(false); }} className="style-menu-item" dir="rtl">
+                      <span>{style === 'classic' ? 'كلاسيكي' : style === 'soft' ? 'ناعم' : 'مضغوط'}</span>
+                      {tableStyle === style && <Check className="w-4 h-4" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           <div className="relative">
             <button
@@ -315,9 +343,9 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
 
       <table className={`grade-table ${tableStyle} w-full border-collapse table-fixed`} id="gradeTable">
         <colgroup>
-          <col style={{ width: 56 }} />
+          <col style={{ width: '7%' }} />
           {table.columns.map(col => (
-            <col key={col.id} style={{ width: col.width || 150 }} />
+            <col key={col.id} style={{ width: `${((col.width || 150) / totalColumnWidth) * 93}%` }} />
           ))}
         </colgroup>
         <thead>
@@ -329,7 +357,6 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               <th
                 key={col.id}
                 className="table-heading border border-slate-200 dark:border-gray-700 px-2 py-2.5 bg-gradient-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10 relative group"
-                style={{ width: col.width || 150 }}
               >
                 {editMode ? (
                   <input
@@ -466,7 +493,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                       }}
                       readOnly={!editMode && col?.type !== 'grade'}
                       className={`${cell.image && isNameCell ? 'hidden' : ''} ${col?.type === 'grade'
-                        ? `grade-value w-[52px] border outline-none rounded-full px-0 py-0.5 text-center font-bold ${tier === 'tier-a' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700' : tier === 'tier-b' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/70 dark:text-blue-200 dark:border-blue-700' : tier === 'tier-c' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/70 dark:text-amber-200 dark:border-amber-700' : tier === 'tier-d' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-rose-900/70 dark:text-rose-200 dark:border-rose-700' : 'bg-transparent border-transparent text-slate-700 dark:text-slate-100'}`
+                        ? `grade-value ${tier} w-[52px] border outline-none rounded-full px-0 py-0.5 text-center font-bold ${tier === 'tier-a' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700' : tier === 'tier-b' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/70 dark:text-blue-200 dark:border-blue-700' : tier === 'tier-c' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/70 dark:text-amber-200 dark:border-amber-700' : tier === 'tier-d' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-rose-900/70 dark:text-rose-200 dark:border-rose-700' : 'bg-transparent border-transparent text-slate-700 dark:text-slate-100'}`
                         : `w-full border-none outline-none bg-transparent text-right text-slate-700 dark:text-slate-100 ${editMode ? 'focus:bg-yellow-50 dark:focus:bg-gray-700 focus:px-1 rounded' : 'cursor-default'}`}`}
                     />
                     {isNameCell && tags.length > 0 && (
@@ -509,7 +536,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={table.columns.length + 1} className="signature-cell border-0 px-2 py-4 text-left text-[#1e3a8a] dark:text-blue-300 font-semibold">
+            <td colSpan={table.columns.length + 1} className="signature-cell border-0 px-2 py-4 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
               عمر
             </td>
           </tr>
