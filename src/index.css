@@ -100,6 +100,24 @@
 .edit-icon-danger:hover:not(:disabled) { background: #dc2626; color: white; border-color: #dc2626; }
 .dark .edit-icon-button { background: #334155; color: #e2e8f0; border-color: #475569; }
 .dark .edit-icon-button:hover:not(:disabled) { background: #1d4ed8; border-color: #60a5fa; color: white; }
+
+.column-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-end: 0;
+  width: 8px;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 20;
+  background: transparent;
+  transition: background-color 120ms;
+}
+
+.column-resize-handle:hover,
+.column-resize-handle:active { background: #2563eb; opacity: 0.85; }
+
 .dark .edit-icon-danger { background: #7f1d1d; border-color: #991b1b; color: #fee2e2; }
 .name-cell-wrapper { display: flex; align-items: center; justify-content: flex-start; gap: 0.45rem; min-width: 0; }
 .name-cell-wrapper input { flex: 1 1 auto; min-width: 0; }

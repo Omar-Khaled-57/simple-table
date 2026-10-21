@@ -14,6 +14,7 @@ interface TableEditorProps {
 
 export default function TableEditor({ table, editMode, tableStyle, onUpdate, onToggleEditMode, onPrint }: TableEditorProps) {
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const resizeRef = useRef<{ colIndex: number; startX: number; startWidth: number; factor: number } | null>(null);
   const [sortKey, setSortKey] = useState<'name' | 'grade'>('grade');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc' | null>(null);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
@@ -179,6 +180,37 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     updateTable({ columns: newCols });
   };
 
+  const startResize = (e: React.MouseEvent, colIndex: number) => {
+    if (!editMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const th = (e.currentTarget as HTMLElement).closest('th');
+    const startWidth = table.columns[colIndex].width || th?.offsetWidth || 150;
+    const rtl = document.documentElement.dir === 'rtl';
+    resizeRef.current = { colIndex, startX: e.clientX, startWidth, factor: rtl ? -1 : 1 };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onResizeMove);
+    window.addEventListener('mouseup', stopResize);
+  };
+
+  const onResizeMove = (e: MouseEvent) => {
+    const state = resizeRef.current;
+    if (!state) return;
+    const dx = e.clientX - state.startX;
+    const newWidth = Math.max(50, Math.round(state.startWidth + dx * state.factor));
+    const newCols = table.columns.map((col, i) => i === state.colIndex ? { ...col, width: newWidth } : col);
+    onUpdate({ ...table, columns: newCols });
+  };
+
+  const stopResize = () => {
+    resizeRef.current = null;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    window.removeEventListener('mousemove', onResizeMove);
+    window.removeEventListener('mouseup', stopResize);
+  };
+
   const getTier = (value: string) => {
     if (value === '#') return 'tier-a';
     const num = parseFloat(value);
@@ -283,9 +315,9 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
 
       <table className={`grade-table ${tableStyle} w-full border-collapse table-fixed`} id="gradeTable">
         <colgroup>
-          <col style={{ width: '7%' }} />
-          {table.columns.map((col, idx) => (
-            <col key={col.id} style={{ width: idx === table.columns.length - 1 ? '24%' : idx === 1 ? '55%' : '14%' }} />
+          <col style={{ width: 56 }} />
+          {table.columns.map(col => (
+            <col key={col.id} style={{ width: col.width || 150 }} />
           ))}
         </colgroup>
         <thead>
@@ -350,6 +382,14 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                       <X className="w-3 h-3" />
                     </button>
                   </div>
+                )}
+                {editMode && (
+                  <div
+                    className="column-resize-handle"
+                    onMouseDown={(e) => startResize(e, colIndex)}
+                    title="اسحب لتغيير العرض"
+                    aria-label="تغيير عرض العمود"
+                  />
                 )}
               </th>
             ))}
