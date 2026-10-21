@@ -10,7 +10,7 @@ Simple Table is an Arabic-first (RTL) web app for creating, editing, and printin
 
 ## Highlights
 
-- **Ready instantly** — the page opens with a filled-in sample report (24 students) so you can see the shape of a result sheet; clear it, or add a new tab, and start typing
+- **Ready instantly** — the page opens with an empty report shell: the `#`, `الكود`, `الاسم` and `الدرجة` columns are already in place, so you hit **إضافة صف** and start typing
 - **Edit mode** — one toggle reveals the per-column and per-row tools:
   - move rows and columns around
   - rename columns inline
@@ -65,6 +65,7 @@ Then open the printed local URL (usually `http://localhost:5173`).
 
 ## Notes
 
+- A new table starts empty — only the `الكود` / `الاسم` / `الدرجة` columns are pre-defined; add rows with **إضافة صف** and columns with **إضافة عمود** (edit mode).
 - Everything lives in your browser, under these `localStorage` keys:
 
   | Key                | What it holds                                                             |

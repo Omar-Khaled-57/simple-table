@@ -15,7 +15,7 @@ const createDefaultTable = (): TableData => {
   ];
   
   const rows: TableRow[] = [];
-  
+
   return {
     id: generateId(),
     name: 'كشف نتيجة الامتحان الشامل الأول',
@@ -24,6 +24,39 @@ const createDefaultTable = (): TableData => {
     signature: 'عمر'
   };
 };
+
+const LEGACY_SEED_HASH = 2277752915;
+const LEGACY_SEED_ROW_COUNT = 23;
+
+const hashSeedRows = (entries: string[]) => {
+  let hash = 0x811c9dc5;
+  for (const entry of entries) {
+    for (let index = 0; index < entry.length; index++) {
+      hash ^= entry.charCodeAt(index);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    hash ^= 0x1f;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
+};
+
+const isLegacySeedTable = (table: TableData) => {
+  if (table.columns.length !== 3) return false;
+  const entries = table.rows
+    .map(row => [
+      row.cells[0]?.value.trim() ?? '',
+      row.cells[1]?.value.trim() ?? '',
+      row.cells[2]?.value.trim() ?? '',
+    ])
+    .filter(([code]) => code !== '')
+    .map(([code, name, grade]) => `${code}|${name}|${grade}`);
+  if (entries.length !== LEGACY_SEED_ROW_COUNT) return false;
+  return hashSeedRows(entries) === LEGACY_SEED_HASH;
+};
+
+const stripLegacySeed = (tables: TableData[]) =>
+  tables.map(table => (isLegacySeedTable(table) ? { ...table, rows: [] } : table));
 
 const getTableStats = (table: TableData) => {
   const grades = table.rows
@@ -61,7 +94,8 @@ export default function App() {
     const saved = localStorage.getItem('exam-tables');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as TableData[];
+        return Array.isArray(parsed) ? stripLegacySeed(parsed) : [createDefaultTable()];
       } catch {
         return [createDefaultTable()];
       }
