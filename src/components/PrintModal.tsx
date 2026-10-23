@@ -124,6 +124,7 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
             <div className="space-y-2">
               <label className={optionClass(printOption === 'all')}>
                 <input
+                  id="print-option-all"
                   type="radio"
                   name="printOption"
                   value="all"
@@ -138,6 +139,7 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
               </label>
               <label className={optionClass(printOption === 'current', !activeTableId)}>
                 <input
+                  id="print-option-current"
                   type="radio"
                   name="printOption"
                   value="current"
@@ -153,6 +155,7 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
               </label>
               <label className={optionClass(printOption === 'some')}>
                 <input
+                  id="print-option-some"
                   type="radio"
                   name="printOption"
                   value="some"
@@ -172,7 +175,10 @@ export default function PrintModal({ isOpen, onClose, tables, activeTableId, onP
                 {tables.map(table => (
                   <label key={table.id} className={`flex items-center gap-3 cursor-pointer rounded-md p-2 transition-colors ${selectedTables.includes(table.id) ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-slate-50 dark:hover:bg-gray-800'}`}>
                     <input
+                      id={`print-table-${table.id}`}
+                      name="printTables"
                       type="checkbox"
+                      value={table.id}
                       checked={selectedTables.includes(table.id)}
                       onChange={() => toggleTableSelection(table.id)}
                       className="choice-checkbox"

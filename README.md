@@ -1,5 +1,7 @@
 # Simple Table
 
+[![Simple Table](public/og-image.jpg)](https://simple--table.vercel.app)
+
 > A fast, no-fuss table builder for everyday work — made to get a table on paper in minutes, not to fight with spreadsheets.
 
 Simple Table is an Arabic-first (RTL) web app for creating, editing, and printing result tables. It was built as a personal work tool: open the page, type your rows, hit print — that's the whole workflow.
@@ -11,14 +13,15 @@ Simple Table is an Arabic-first (RTL) web app for creating, editing, and printin
 ## Highlights
 
 - **Ready instantly** — the page opens with an empty report shell: the `#`, `الكود`, `الاسم` and `الدرجة` columns are already in place, so you hit **إضافة صف** and start typing
-- **Always-editable data** — the `الكود` and `الاسم` cells can be edited in view mode; no need to enter edit mode just to correct a value. Grades remain locked in view mode to prevent accidental changes
+- **Always-editable data** — every cell, including grades, can be edited in view mode; no need to enter edit mode just to correct a value. Double-click anywhere inside a cell to focus and select its input
+- **Fast row management** — **إضافة صف** adds a row instantly, while double-clicking it opens a dialog to add several rows at once or set the exact total. **حذف آخر صف** removes the last row, and `Shift` + `Numpad +` / `Shift` + `Numpad −` work as keyboard shortcuts
 - **Edit mode** — one toggle reveals the structural tools:
   - move rows and columns around
   - rename columns inline
   - drag or nudge column widths
-  - add/remove rows and columns
+  - remove individual rows and add/remove columns
   - attach a photo and one or more tags to a name cell
-  - edit grades and the signature (the title stays editable at all times)
+  - edit the signature (the title stays editable at all times)
 - **Grade colouring** — grades are bucketed automatically into four tiers: **18+** green, **14+** blue, **10+** amber, below that red. A `0` is stored as `#` (absent) and still counts as zero in the statistics
 - **Sorting** — sort by name (the `الاسم` column) or by grade, ascending or descending, straight from the sort menu
 - **Three layouts** — *Classic* (banded rows), *Soft* (light banding) and *Compact* (tight rows) to match what you're printing
@@ -83,7 +86,7 @@ The production build also type-checks the tests, so `npm run build` catches type
 
 ## Notes
 
-- A new table starts empty — only the `الكود` / `الاسم` / `الدرجة` columns are pre-defined; add rows with **إضافة صف** and columns with **إضافة عمود** (edit mode).
+- A new table starts empty — only the `الكود` / `الاسم` / `الدرجة` columns are pre-defined; add rows with **إضافة صف** (double-click for a custom row count) and columns with **إضافة عمود** (edit mode).
 - Everything lives in your browser, under these `localStorage` keys:
 
   | Key                | What it holds                                                        |

@@ -306,7 +306,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             onClick={handleAddRowClick}
             onDoubleClick={handleAddRowDoubleClick}
             title="انقر مرتين لتحديد عدد الصفوف"
-            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 shadow-xs transition-colors"
+            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-emerald-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-800 dark:bg-emerald-700 dark:hover:bg-emerald-800 shadow-xs transition-colors"
           >
             <Plus className="w-4 h-4" />
             إضافة صف
@@ -322,7 +322,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
           {onToggleEditMode && (
             <button
               onClick={onToggleEditMode}
-              className={`w-full lg:w-auto justify-center px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-xs transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800' : 'bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-700 dark:hover:bg-amber-800'}`}
+              className={`w-full lg:w-auto justify-center px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-xs transition-colors ${editMode ? 'bg-indigo-800 text-white hover:bg-indigo-900 dark:bg-indigo-600 dark:hover:bg-indigo-700' : 'bg-indigo-700 text-white hover:bg-indigo-800 dark:bg-indigo-700 dark:hover:bg-indigo-800'}`}
               aria-pressed={editMode}
             >
               <Edit3 className="w-4 h-4" /> {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
@@ -331,7 +331,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
           <button
             onClick={addColumn}
             disabled={!editMode}
-            className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-xs`}
+            className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-xs lg:whitespace-nowrap`}
           >
             <Plus className="w-4 h-4" />
             إضافة عمود
@@ -361,7 +361,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             </div>
           </div>
           {onTableStyleChange && (
-            <div className="relative w-full lg:w-auto">
+            <div className="relative flex w-full lg:block lg:w-auto">
               <button
                 onClick={() => toggleMenu('style')}
                 aria-haspopup="menu"
@@ -386,7 +386,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               <Printer className="w-4 h-4" /> طباعة
             </button>
           )}
-          <span aria-hidden={!editMode} className={`edit-reveal edit-reveal-status${editMode ? '' : ' edit-reveal-hidden'} col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-amber-700 dark:text-amber-300 self-center`}>وضع التعديل نشط</span>
+          <span aria-hidden={!editMode} className={`edit-reveal edit-reveal-status${editMode ? '' : ' edit-reveal-hidden'} col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-indigo-700 dark:text-indigo-300 self-center`}>وضع التعديل نشط</span>
           {imageError && (
             <p role="alert" className="col-span-2 sm:col-span-3 lg:basis-full w-full rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
               {imageError}
@@ -395,6 +395,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
       </div>
       <input
         ref={imageInputRef}
+        id="student-image-input"
+        name="studentImage"
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
         className="hidden"
@@ -428,6 +430,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               >
                 {editMode ? (
                   <input
+                    id={`column-name-${col.id}`}
+                    name="columnName"
                     type="text"
                     value={col.name}
                     aria-label={`اسم العمود ${colIndex + 1}`}
@@ -566,6 +570,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                       />
                     )}
                     <input
+                      id={`cell-value-${row.id}-${cell.id}`}
+                      name="cellValue"
                       type="text"
                       value={cell.value}
                       aria-label={`${col?.name || `عمود ${cellIndex + 1}`}، الصف ${rowIndex + 1}`}
@@ -593,6 +599,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                           <span className="student-tag" key={`${cell.id}-tag-${tagIndex}`}>
                             {editMode ? (
                               <input
+                                id={`cell-tag-${cell.id}-${tagIndex}`}
+                                name="cellTag"
                                 value={tag}
                                 aria-label={`وسم ${tagIndex + 1}`}
                                 onChange={event => updateCellTags(row.id, cell.id, tags.map((item, index) => index === tagIndex ? event.target.value : item))}
@@ -638,6 +646,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
       <div className="signature-cell px-2 pt-3 pr-6 sm:pr-8 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
         {editMode ? (
           <input
+            id="table-signature"
+            name="tableSignature"
             type="text"
             value={table.signature || 'عمر'}
             onChange={(e) => onUpdate({ ...table, signature: e.target.value })}
@@ -768,11 +778,11 @@ function RowCountModal({ currentCount, onClose, onAddRows, onSetTotalRows }: Row
             <legend className="sr-only">طريقة تعديل الصفوف</legend>
             <div className="grid grid-cols-2 gap-2">
               <label className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors ${mode === 'add' ? 'border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-200' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300'}`}>
-                <input type="radio" name="row-count-mode" className="choice-radio" checked={mode === 'add'} onChange={() => chooseMode('add')} />
+                <input id="row-count-mode-add" type="radio" name="row-count-mode" className="choice-radio" checked={mode === 'add'} onChange={() => chooseMode('add')} />
                 إضافة صفوف
               </label>
               <label className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors ${mode === 'total' ? 'border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-200' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300'}`}>
-                <input type="radio" name="row-count-mode" className="choice-radio" checked={mode === 'total'} onChange={() => chooseMode('total')} />
+                <input id="row-count-mode-total" type="radio" name="row-count-mode" className="choice-radio" checked={mode === 'total'} onChange={() => chooseMode('total')} />
                 العدد الإجمالي
               </label>
             </div>
@@ -785,6 +795,7 @@ function RowCountModal({ currentCount, onClose, onAddRows, onSetTotalRows }: Row
             <input
               ref={inputRef}
               id="row-count-input"
+              name="rowCount"
               type="number"
               min={mode === 'add' ? 1 : 0}
               max={1000}

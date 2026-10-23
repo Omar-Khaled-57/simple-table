@@ -271,6 +271,8 @@ export default function App() {
           <div className="report-band text-white rounded-xl p-4 md:p-5 mb-5 flex flex-wrap items-center justify-between gap-4 shadow-[0_10px_26px_-10px_rgba(37,99,235,0.65)]">
             <textarea
               ref={titleRef}
+              id="table-title"
+              name="tableTitle"
               value={tableTitleInput}
               rows={1}
               onChange={(e) => { setTableTitleInput(e.target.value); autoGrow(e.target); }}
@@ -403,7 +405,7 @@ export default function App() {
               ))}
               <button
                 onClick={addTab}
-                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors shrink-0"
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 إضافة تبويب
