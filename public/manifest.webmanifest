@@ -1,24 +1,32 @@
 {
-  "name": "كشف نتيجة الامتحان - Simple Table",
+  "id": "/",
+  "name": "Simple Table",
   "short_name": "Simple Table",
-  "description": "تطبيق ويب متجاوب لإدارة وطباعة جداول ونواتج الامتحانات مع دعم التعديل والتصدير إلى PDF.",
+  "description": "تطبيق ويب عربي متجاوب لإدارة وطباعة جداول ونواتج الامتحانات مع تبويبات متعددة وطباعة PDF نظيفة.",
   "lang": "ar",
   "dir": "rtl",
-  "start_url": ".",
-  "scope": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#eef2f7",
+  "background_color": "#ffffff",
   "theme_color": "#1e3a8a",
+  "categories": ["education", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/table.png",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/table.png",
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

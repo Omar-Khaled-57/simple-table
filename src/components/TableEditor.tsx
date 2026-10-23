@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import type { TableData, TableRow } from '../types';
 import { generateId } from '../utils/tdaim';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, X, Minus, Maximize2, ImagePlus, Edit3, Printer, ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, Palette, Check } from 'lucide-react';
+import { compressImage } from '../utils/image';
+import { getGradeTier, normalizeGrade, sanitizeGrade } from '../utils/grades';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Plus, X, Minus, Maximize2, ImagePlus, Edit3, Printer, ArrowDownWideNarrow, ArrowUpWideNarrow, ChevronDown, Palette, Check, Loader2, Trash2 } from 'lucide-react';
 
 interface TableEditorProps {
   table: TableData;
@@ -37,6 +39,13 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     };
   }, [openMenu]);
   const [imageTarget, setImageTarget] = useState<{ rowId: string; cellId: string } | null>(null);
+  const [rowDialogOpen, setRowDialogOpen] = useState(false);
+  useEffect(() => () => {
+    document.body.classList.remove('is-resizing');
+  }, []);
+
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const updateTable = (updates: Partial<TableData>) => {
     onUpdate({ ...table, ...updates });
   };
@@ -74,27 +83,82 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     imageInputRef.current?.click();
   };
 
-  const handleImageSelection = (file?: File) => {
-    if (!file || !imageTarget) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') updateCellImage(imageTarget.rowId, imageTarget.cellId, reader.result);
+  const handleImageSelection = async (file?: File) => {
+    const target = imageTarget;
+    if (!file || !target) return;
+    setImageError(null);
+    setIsProcessingImage(true);
+    try {
+      const dataUrl = await compressImage(file);
+      updateCellImage(target.rowId, target.cellId, dataUrl);
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : 'تعذّر معالجة الصورة. جرّب صورة أخرى.');
+    } finally {
+      setIsProcessingImage(false);
       setImageTarget(null);
-    };
-    reader.readAsDataURL(file);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+    }
   };
 
-  const addRow = () => {
-    const newRow: TableRow = {
+  const addRows = (count: number) => {
+    const amount = Math.max(1, Math.floor(count));
+    const newRows: TableRow[] = Array.from({ length: amount }, () => ({
       id: generateId(),
       cells: table.columns.map(col => ({
         id: generateId(),
         value: '',
         type: col.type === 'grade' ? 'grade' as const : 'text' as const
       }))
-    };
-    updateTable({ rows: [...table.rows, newRow] });
+    }));
+    updateTable({ rows: [...table.rows, ...newRows] });
   };
+
+  const removeLastRow = () => {
+    if (table.rows.length === 0) return;
+    updateTable({ rows: table.rows.slice(0, -1) });
+  };
+
+  const setTotalRows = (count: number) => {
+    const target = Math.max(0, Math.floor(count));
+    if (target === table.rows.length) return;
+    if (target < table.rows.length) {
+      updateTable({ rows: table.rows.slice(0, target) });
+      return;
+    }
+    addRows(target - table.rows.length);
+  };
+
+  const addRowsRef = useRef(addRows);
+  const removeLastRowRef = useRef(removeLastRow);
+
+  useEffect(() => {
+    addRowsRef.current = addRows;
+    removeLastRowRef.current = removeLastRow;
+  });
+
+  const handleAddRowClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (event.detail > 1) return;
+    addRowsRef.current(1);
+  };
+
+  const handleAddRowDoubleClick = () => {
+    removeLastRowRef.current();
+    setRowDialogOpen(true);
+  };
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (!event.shiftKey || (event.code !== 'NumpadAdd' && event.code !== 'NumpadSubtract')) return;
+      const target = event.target instanceof Element ? event.target : null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      event.preventDefault();
+      if (event.code === 'NumpadAdd') addRowsRef.current(1);
+      else removeLastRowRef.current();
+    };
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, []);
 
   const sortRows = (key: 'name' | 'grade') => {
     const gradeColumnIndex = table.columns.findIndex(column => column.type === 'grade');
@@ -207,8 +271,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     const startWidth = table.columns[colIndex].width || th?.offsetWidth || 150;
     const rtl = getComputedStyle(handle).direction === 'rtl';
     resizeRef.current = { colIndex, startX: e.clientX, startWidth, rtl };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
+    document.body.classList.add('is-resizing');
     handle.setPointerCapture?.(e.pointerId);
     window.addEventListener('pointermove', onResizeMove);
     window.addEventListener('pointerup', stopResize);
@@ -226,41 +289,10 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
 
   const stopResize = () => {
     resizeRef.current = null;
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
+    document.body.classList.remove('is-resizing');
     window.removeEventListener('pointermove', onResizeMove);
     window.removeEventListener('pointerup', stopResize);
     window.removeEventListener('pointercancel', stopResize);
-  };
-
-  const getTier = (value: string) => {
-    if (value === '#') return 'tier-d';
-    const num = parseFloat(value);
-    if (isNaN(num)) return '';
-    if (num >= 18) return 'tier-a';
-    if (num >= 14) return 'tier-b';
-    if (num >= 10) return 'tier-c';
-    return 'tier-d';
-  };
-
-  const normalizeGrade = (v: string) => {
-    const s = v.trim();
-    if (s === '' || s === '.') return '';
-    if (s === '#') return '#';
-    const n = parseFloat(s);
-    if (isNaN(n)) return s;
-    return n === 0 ? '#' : String(n);
-  };
-
-  const sanitizeGrade = (v: string) => {
-    let s = v;
-    if (s.includes('#')) return '0';
-    s = s.replace(/[^0-9.]/g, '');
-    const dot = s.indexOf('.');
-    if (dot !== -1) {
-      s = s.slice(0, dot + 1) + s.slice(dot + 1).replace(/\./g, '');
-    }
-    return s;
   };
 
   const totalColumnWidth = table.columns.reduce((sum, column) => sum + (column.width || 150), 0);
@@ -271,16 +303,26 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
     <div className="w-full">
       <div className={`table-control-strip mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-center p-2.5 rounded-xl border transition-colors ${editMode ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900' : 'bg-slate-50 dark:bg-gray-800 border-slate-200 dark:border-gray-700'}`}>
           <button
-            onClick={addRow}
-            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-700 shadow-sm transition-colors"
+            onClick={handleAddRowClick}
+            onDoubleClick={handleAddRowDoubleClick}
+            title="انقر مرتين لتحديد عدد الصفوف"
+            className="w-full lg:w-auto justify-center px-3.5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800 shadow-xs transition-colors"
           >
             <Plus className="w-4 h-4" />
             إضافة صف
           </button>
+          <button
+            onClick={removeLastRow}
+            disabled={table.rows.length === 0}
+            className="delete-last-row-button w-full lg:w-auto justify-center px-3.5 py-2 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 disabled:cursor-not-allowed shadow-xs"
+          >
+            <Trash2 className="w-4 h-4" />
+            حذف آخر صف
+          </button>
           {onToggleEditMode && (
             <button
               onClick={onToggleEditMode}
-              className={`w-full lg:w-auto justify-center px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-sm transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700' : 'bg-amber-500 text-white hover:bg-amber-600'}`}
+              className={`w-full lg:w-auto justify-center px-3.5 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 shadow-xs transition-colors ${editMode ? 'bg-orange-600 text-white hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800' : 'bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-700 dark:hover:bg-amber-800'}`}
               aria-pressed={editMode}
             >
               <Edit3 className="w-4 h-4" /> {editMode ? 'إنهاء التعديل' : 'وضع التعديل'}
@@ -289,7 +331,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
           <button
             onClick={addColumn}
             disabled={!editMode}
-            className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors`}
+            className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-xs`}
           >
             <Plus className="w-4 h-4" />
             إضافة عمود
@@ -300,7 +342,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               onDoubleClick={() => sortRows(sortKey)}
               aria-haspopup="menu"
               aria-expanded={openMenu === 'sort'}
-              className="w-full lg:w-auto justify-center px-3.5 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
+              className="w-full lg:w-auto justify-center px-3.5 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs transition-colors"
               title="خيارات الترتيب"
             >
               {sortDirection === 'asc' ? <ArrowUpWideNarrow className="w-4 h-4" /> : <ArrowDownWideNarrow className="w-4 h-4" />}
@@ -324,7 +366,7 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                 onClick={() => toggleMenu('style')}
                 aria-haspopup="menu"
                 aria-expanded={openMenu === 'style'}
-                className="w-full lg:w-auto justify-center px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-sm transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
+                className="w-full lg:w-auto justify-center px-3.5 py-2 bg-slate-700 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-slate-800 shadow-xs transition-colors dark:bg-slate-600 dark:hover:bg-slate-500"
               >
                 <Palette className="w-4 h-4" /> <span className="portrait:hidden">تنسيق</span>{tableStyle === 'classic' ? 'كلاسيكي' : tableStyle === 'soft' ? 'ناعم' : 'مضغوط'}
                 <ChevronDown className="w-4 h-4 opacity-80" />
@@ -340,24 +382,29 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             </div>
           )}
           {onPrint && (
-            <button onClick={onPrint} className={`${!editMode ? 'col-span-2 sm:col-span-2 lg:col-span-1' : ''} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-sm transition-colors`}>
+            <button onClick={onPrint} className={`${editMode ? 'col-span-2 sm:col-span-3' : ''} w-full lg:w-auto justify-center px-3.5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-blue-700 shadow-xs transition-colors`}>
               <Printer className="w-4 h-4" /> طباعة
             </button>
           )}
-          <span aria-hidden={!editMode} className={`edit-reveal${editMode ? '' : ' edit-reveal-hidden'} col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-amber-700 dark:text-amber-300 self-center`}>وضع التعديل نشط</span>
+          <span aria-hidden={!editMode} className={`edit-reveal edit-reveal-status${editMode ? '' : ' edit-reveal-hidden'} col-span-2 sm:col-span-3 lg:col-span-1 py-1 text-center text-xs text-amber-700 dark:text-amber-300 self-center`}>وضع التعديل نشط</span>
+          {imageError && (
+            <p role="alert" className="col-span-2 sm:col-span-3 lg:basis-full w-full rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+              {imageError}
+            </p>
+          )}
       </div>
       <input
         ref={imageInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
         className="hidden"
         onChange={event => {
-          handleImageSelection(event.target.files?.[0]);
+          void handleImageSelection(event.target.files?.[0]);
           event.target.value = '';
         }}
       />
 
-      <div className="table-scroll overflow-x-auto overscroll-x-contain rounded-lg">
+      <div className="table-scroll overflow-x-auto overscroll-x-contain rounded-lg border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-gray-900">
       <table
         className={`grade-table ${tableStyle} w-full border-collapse table-fixed`}
         id="gradeTable"
@@ -371,20 +418,21 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
         </colgroup>
         <thead>
           <tr>
-            <th className="table-heading sticky-col border border-slate-200 dark:border-gray-700 px-2 py-2.5 bg-gradient-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10">
+            <th className="table-heading sticky-col border border-slate-300 dark:border-slate-600 px-2 py-2.5 bg-linear-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10">
               #
             </th>
             {table.columns.map((col, colIndex) => (
               <th
                 key={col.id}
-                className="table-heading border border-slate-200 dark:border-gray-700 px-2 py-2.5 bg-gradient-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10 relative group"
+                className="table-heading border border-slate-300 dark:border-slate-600 px-2 py-2.5 bg-linear-to-b from-blue-50 to-slate-200 dark:from-gray-800 dark:to-gray-800 text-slate-700 dark:text-slate-100 font-semibold text-sm sticky top-0 z-10 relative group"
               >
                 {editMode ? (
                   <input
                     type="text"
                     value={col.name}
+                    aria-label={`اسم العمود ${colIndex + 1}`}
                     onChange={(e) => renameColumn(colIndex, e.target.value)}
-                    className="w-full bg-transparent border-none outline-none font-semibold text-right text-slate-700 dark:text-slate-100 rounded px-1 focus:bg-white dark:focus:bg-gray-700 focus:ring-2 focus:ring-blue-400"
+                    className="w-full bg-transparent border-none outline-hidden font-semibold text-right text-slate-700 dark:text-slate-100 rounded-sm px-1 focus:bg-white dark:focus:bg-gray-700 focus:ring-2 focus:ring-blue-400"
                   />
                 ) : (
                   <div className="text-right">{col.name}</div>
@@ -435,8 +483,22 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                   <div
                     className="column-resize-handle"
                     onPointerDown={(e) => startResize(e, colIndex)}
-                    title="اسحب لتغيير العرض"
-                    aria-label="تغيير عرض العمود"
+                    onKeyDown={(e) => {
+                      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                      e.preventDefault();
+                      const rtl = getComputedStyle(e.currentTarget).direction === 'rtl';
+                      const direction = (e.key === 'ArrowLeft' ? 1 : -1) * (rtl ? 1 : -1);
+                      resizeColumn(colIndex, direction * 10);
+                    }}
+                    title="اسحب أو استخدم الأسهم لتغيير العرض"
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label={`تغيير عرض العمود: ${col.name}`}
+                    aria-valuemin={60}
+                    aria-valuemax={800}
+                    aria-valuenow={Math.round(col.width || 150)}
+                    aria-valuetext={`${Math.round(col.width || 150)} بكسل`}
+                    tabIndex={0}
                   />
                 )}
               </th>
@@ -477,12 +539,20 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
               </td>
               {row.cells.map((cell, cellIndex) => {
                 const col = table.columns[cellIndex];
-                const tier = col?.type === 'grade' ? getTier(cell.value) : '';
+                const tier = col?.type === 'grade' ? getGradeTier(cell.value) : '';
                 const isNameCell = col?.name.trim() === 'الاسم' || cellIndex === 1;
                 const tags = cell.tags || [];
                 return (
                   <td
                     key={cell.id}
+                    onDoubleClick={(event) => {
+                      const target = event.target instanceof Element ? event.target : null;
+                      if (target?.closest('input, button, textarea, select, img, a')) return;
+                      const input = event.currentTarget.querySelector<HTMLInputElement>('input[type="text"]');
+                      if (!input || input.classList.contains('hidden')) return;
+                      input.focus();
+                      input.select();
+                    }}
                     className={`grade-cell border border-slate-200 dark:border-gray-700 px-2 py-1.5 text-sm ${col?.type === 'grade' ? 'text-center' : 'text-right'}`}
                   >
                     <div className={col?.type === 'grade' ? '' : `name-cell-wrapper items-center justify-between${cell.image ? ' has-student-image' : ''}`}>
@@ -498,6 +568,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     <input
                       type="text"
                       value={cell.value}
+                      aria-label={`${col?.name || `عمود ${cellIndex + 1}`}، الصف ${rowIndex + 1}`}
+                      inputMode={col?.type === 'grade' ? 'decimal' : undefined}
                       onChange={(e) => {
                         if (col?.type === 'grade') {
                           const cleaned = sanitizeGrade(e.target.value);
@@ -511,10 +583,9 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                           updateCell(row.id, cell.id, normalizeGrade(e.target.value));
                         }
                       }}
-                      readOnly={!editMode && col?.type !== 'grade'}
                       className={`${cell.image && isNameCell ? 'hidden' : ''} ${col?.type === 'grade'
-                        ? `grade-value ${tier} w-[52px] border outline-none rounded-full px-0 py-0.5 text-center font-bold ${tier === 'tier-a' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700' : tier === 'tier-b' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/70 dark:text-blue-200 dark:border-blue-700' : tier === 'tier-c' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/70 dark:text-amber-200 dark:border-amber-700' : tier === 'tier-d' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-rose-900/70 dark:text-rose-200 dark:border-rose-700' : 'bg-transparent border-transparent text-slate-700 dark:text-slate-100'}`
-                        : `w-full border-none outline-none bg-transparent text-right text-slate-700 dark:text-slate-100 ${editMode ? 'focus:bg-yellow-50 dark:focus:bg-gray-700 focus:px-1 rounded' : 'cursor-default'}`}`}
+                        ? `grade-value ${tier} w-[52px] border outline-hidden rounded-full px-0 py-0.5 text-center font-bold ${tier === 'tier-a' ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700' : tier === 'tier-b' ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/70 dark:text-blue-200 dark:border-blue-700' : tier === 'tier-c' ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/70 dark:text-amber-200 dark:border-amber-700' : tier === 'tier-d' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-rose-900/70 dark:text-rose-200 dark:border-rose-700' : 'bg-transparent border-transparent text-slate-700 dark:text-slate-100'}`
+                        : `w-full border-none outline-hidden bg-transparent text-right text-slate-700 dark:text-slate-100 ${editMode ? 'focus:bg-yellow-50 dark:focus:bg-gray-700 focus:px-1 rounded-sm' : 'cursor-text focus:bg-yellow-50/70 dark:focus:bg-gray-700/70 focus:px-1 rounded-sm'}`}`}
                     />
                     {isNameCell && tags.length > 0 && (
                       <div className="tag-list">
@@ -539,8 +610,8 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
                     )}
                     {editMode && isNameCell && (
                       <div className="name-cell-actions">
-                        <button type="button" className="image-cell-button" title={cell.image ? 'تغيير الصورة' : 'إضافة صورة'} aria-label={cell.image ? 'تغيير الصورة' : 'إضافة صورة'} onClick={() => pickImage(row.id, cell.id)}>
-                          <ImagePlus className="w-4 h-4" />
+                        <button type="button" className="image-cell-button" title={cell.image ? 'تغيير الصورة' : 'إضافة صورة'} aria-label={cell.image ? 'تغيير الصورة' : 'إضافة صورة'} aria-busy={isProcessingImage} disabled={isProcessingImage} onClick={() => pickImage(row.id, cell.id)}>
+                          {isProcessingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
                         </button>
                         <button type="button" className="tag-add-button" title="إضافة وسم" aria-label="إضافة وسم" onClick={() => updateCellTags(row.id, cell.id, [...tags, 'وسم'])}>
                           <Plus className="w-4 h-4" />
@@ -554,24 +625,206 @@ export default function TableEditor({ table, editMode, tableStyle, onUpdate, onT
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={table.columns.length + 1} className="signature-cell border-0 px-2 py-4 pr-6 sm:pr-8 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
-              {editMode ? (
-                <input
-                  type="text"
-                  value={table.signature ?? 'عمر'}
-                  onChange={(e) => onUpdate({ ...table, signature: e.target.value })}
-                  className="signature-input"
-                  aria-label="التوقيع"
-                />
-              ) : (
-                table.signature || 'عمر'
-              )}
-            </td>
-          </tr>
-        </tfoot>
       </table>
+      </div>
+      {rowDialogOpen && (
+        <RowCountModal
+          currentCount={table.rows.length}
+          onClose={() => setRowDialogOpen(false)}
+          onAddRows={count => { addRows(count); setRowDialogOpen(false); }}
+          onSetTotalRows={count => { setTotalRows(count); setRowDialogOpen(false); }}
+        />
+      )}
+      <div className="signature-cell px-2 pt-3 pr-6 sm:pr-8 text-left text-[#1e3a8a] dark:text-blue-300 font-bold">
+        {editMode ? (
+          <input
+            type="text"
+            value={table.signature || 'عمر'}
+            onChange={(e) => onUpdate({ ...table, signature: e.target.value })}
+            className="signature-input"
+            aria-label="التوقيع"
+          />
+        ) : (
+          table.signature || 'عمر'
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface RowCountModalProps {
+  currentCount: number;
+  onClose: () => void;
+  onAddRows: (count: number) => void;
+  onSetTotalRows: (count: number) => void;
+}
+
+function RowCountModal({ currentCount, onClose, onAddRows, onSetTotalRows }: RowCountModalProps) {
+  const [mode, setMode] = useState<'add' | 'total'>('add');
+  const [value, setValue] = useState('1');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  useEffect(() => {
+    const focusTimer = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key === 'Tab') {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+          .filter(el => !el.hasAttribute('disabled'));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        const active = document.activeElement;
+        if (event.shiftKey) {
+          if (active === first || !dialog.contains(active)) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else if (active === last || !dialog.contains(active)) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  const parsed = Number.parseInt(value, 10);
+  const isValid = Number.isFinite(parsed) && (mode === 'add' ? parsed >= 1 : parsed >= 0);
+  const count = isValid ? Math.min(parsed, 1000) : 0;
+  const totalAfter = mode === 'add' ? currentCount + count : count;
+
+  const chooseMode = (nextMode: 'add' | 'total') => {
+    setMode(nextMode);
+    setValue(nextMode === 'add' ? '1' : String(currentCount));
+    window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 0);
+  };
+
+  return (
+    <div
+      className="row-modal-overlay fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-xs"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="row-count-title"
+        className="modal-panel w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
+        dir="rtl"
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!isValid) return;
+            if (mode === 'add') onAddRows(count);
+            else onSetTotalRows(count);
+          }}
+        >
+        <div className="flex items-start justify-between gap-3 bg-linear-to-l from-[#1e3a8a] to-[#2563eb] px-5 py-4 text-white dark:from-[#1e3a8a] dark:to-[#1e40af]">
+          <div>
+            <h2 id="row-count-title" className="text-base font-bold">عدد الصفوف</h2>
+            <p className="mt-0.5 text-xs text-blue-100">أضف صفوفًا جديدة أو حدّد العدد الإجمالي للصفوف.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="إغلاق"
+            className="rounded-lg p-1.5 text-blue-100 transition-colors hover:bg-white/15 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          <fieldset>
+            <legend className="sr-only">طريقة تعديل الصفوف</legend>
+            <div className="grid grid-cols-2 gap-2">
+              <label className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors ${mode === 'add' ? 'border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-200' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300'}`}>
+                <input type="radio" name="row-count-mode" className="choice-radio" checked={mode === 'add'} onChange={() => chooseMode('add')} />
+                إضافة صفوف
+              </label>
+              <label className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-colors ${mode === 'total' ? 'border-blue-500 bg-blue-50 text-blue-800 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-200' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:text-slate-300'}`}>
+                <input type="radio" name="row-count-mode" className="choice-radio" checked={mode === 'total'} onChange={() => chooseMode('total')} />
+                العدد الإجمالي
+              </label>
+            </div>
+          </fieldset>
+
+          <div>
+            <label htmlFor="row-count-input" className="mb-1.5 block text-sm font-bold text-slate-700 dark:text-slate-200">
+              {mode === 'add' ? 'كم عدد الصفوف التي تريد إضافتها؟' : 'كم عدد الصفوف الإجمالي الذي تريده؟'}
+            </label>
+            <input
+              ref={inputRef}
+              id="row-count-input"
+              type="number"
+              min={mode === 'add' ? 1 : 0}
+              max={1000}
+              step={1}
+              inputMode="numeric"
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-lg font-bold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-3 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm dark:border-gray-700 dark:bg-gray-800/60">
+            <span className="text-slate-600 dark:text-slate-300">الإجمالي الحالي: <strong className="text-slate-800 dark:text-white">{currentCount}</strong></span>
+            <span className="text-slate-600 dark:text-slate-300">بعد التطبيق: <strong className="text-blue-700 dark:text-blue-300">{totalAfter}</strong></span>
+          </div>
+
+          {mode === 'total' && totalAfter < currentCount && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+              سيتم حذف {currentCount - totalAfter} من الصفوف الأخيرة.
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50 dark:border-gray-600 dark:bg-gray-800 dark:text-slate-200 dark:hover:bg-gray-700"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              disabled={!isValid}
+              className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-700 dark:hover:bg-blue-600"
+            >
+              تطبيق
+            </button>
+          </div>
+        </div>
+        </form>
       </div>
     </div>
   );

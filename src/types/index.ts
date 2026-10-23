@@ -2,7 +2,6 @@ export interface TableCell {
   id: string;
   value: string;
   type?: 'text' | 'number' | 'grade' | 'note';
-  noteClass?: string;
   image?: string;
   tags?: string[];
 }
@@ -25,11 +24,4 @@ export interface TableData {
   columns: TableColumn[];
   rows: TableRow[];
   signature?: string;
-}
-
-export interface AppState {
-  tables: TableData[];
-  activeTableId: string | null;
-  editMode: boolean;
-  theme: 'light' | 'dark';
 }

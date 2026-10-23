@@ -8,7 +8,7 @@
     <title>كشف نتيجة الامتحان | Simple Table</title>
     <meta
       name="description"
-      content="تطبيق ويب متجاوب وسريع لإدارة وطباعة جداول ونواتج الامتحانات، مع تبويبات متعددة، وضع تعديل متقدم، وتصدير PDF نظيف. يدعم العربية والإنجليزية RTL/LTR."
+      content="تطبيق ويب عربي متجاوب وسريع لإدارة وطباعة جداول ونواتج الامتحانات، مع تبويبات متعددة، ووضع تعديل متقدم، وطباعة PDF نظيفة."
     />
     <meta name="keywords" content="كشف نتيجة, جداول, نتائج, امتحان, طباعة, PDF, simple table, responsive table" />
     <meta name="author" content="Omar Khaled" />
@@ -19,15 +19,17 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <link rel="canonical" href="https://simple--table.vercel.app/" />
-    <link rel="icon" type="image/png" href="/table.png" />
-    <link rel="apple-touch-icon" href="/table.png" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Simple Table" />
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:locale" content="ar_AR" />
+    <meta property="og:locale" content="ar_EG" />
     <meta property="og:site_name" content="Simple Table" />
     <meta property="og:title" content="كشف نتيجة الامتحان | Simple Table" />
     <meta
@@ -35,37 +37,35 @@
       content="تطبيق ويب متجاوب وسريع لإدارة وطباعة جداول ونواتج الامتحانات، مع تبويبات متعددة وتصدير PDF نظيف."
     />
     <meta property="og:url" content="https://simple--table.vercel.app/" />
-    <meta property="og:image" content="https://simple--table.vercel.app/table.png" />
-    <meta property="og:image:width" content="512" />
-    <meta property="og:image:height" content="512" />
-    <meta property="og:image:alt" content="أيقونة جدول" />
+    <meta property="og:image" content="https://simple--table.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Simple Table" />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="كشف نتيجة الامتحان | Simple Table" />
     <meta name="twitter:description" content="تطبيق ويب متجاوب لإدارة وطباعة جداول النتائج مع تصدير PDF." />
-    <meta name="twitter:image" content="https://simple--table.vercel.app/table.png" />
+    <meta name="twitter:image" content="https://simple--table.vercel.app/og-image.png" />
+    <meta name="twitter:image:alt" content="Simple Table" />
 
-    <!-- Fonts: preconnect + swap for fast rendering -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" href="/fonts/cairo-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/cairo-600.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/cairo-700.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Structured Data -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
-        "name": "كشف نتيجة الامتحان | Simple Table",
+        "name": "Simple Table",
         "applicationCategory": "ProductivityApplication",
         "operatingSystem": "Any",
-        "inLanguage": ["ar", "en"],
+        "inLanguage": "ar",
         "description": "تطبيق ويب متجاوب لإدارة وطباعة جداول ونواتج الامتحانات مع تبويبات متعددة وتصدير PDF.",
         "url": "https://simple--table.vercel.app/",
-        "image": "https://simple--table.vercel.app/table.png",
+        "image": "https://simple--table.vercel.app/og-image.png",
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
     </script>

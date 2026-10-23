@@ -1,24 +1,17 @@
 import type { TableData } from '../types';
+import { getGradeTier } from '../utils/grades';
 
 interface PrintTableProps {
   table: TableData;
   tableStyle: 'classic' | 'soft' | 'compact';
 }
 
-const getGradeTier = (value: string) => {
-  if (value === '#') return 'tier-d';
-  const grade = Number.parseFloat(value);
-  if (!Number.isFinite(grade)) return '';
-  if (grade >= 18) return 'tier-a';
-  if (grade >= 14) return 'tier-b';
-  if (grade >= 10) return 'tier-c';
-  return 'tier-d';
-};
-
 export default function PrintTable({ table, tableStyle }: PrintTableProps) {
   const totalColumnWidth = table.columns.reduce((sum, column) => sum + (column.width || 150), 0);
 
   return (
+    <>
+    <div className="print-table-frame">
     <table className={`print-grade-table ${tableStyle}`}>
       <colgroup>
         <col style={{ width: '7%' }} />
@@ -64,9 +57,9 @@ export default function PrintTable({ table, tableStyle }: PrintTableProps) {
           </tr>
         ))}
       </tbody>
-      <tfoot>
-        <tr><td colSpan={table.columns.length + 1} className="print-signature">{table.signature || 'عمر'}</td></tr>
-      </tfoot>
     </table>
+    </div>
+    <div className="print-signature">{table.signature || 'عمر'}</div>
+    </>
   );
 }

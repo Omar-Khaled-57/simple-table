@@ -1,101 +1,76 @@
-import { useState, useEffect, useRef } from 'react';
-import type { TableData, TableColumn, TableRow } from './types';
-import { generateId } from './utils/tdaim';
+import { useCallback, useState, useEffect, useRef } from 'react';
+import type { TableData } from './types';
+import { createDefaultTable, getTableStats, normalizeTables } from './utils/tables';
 import { useTdaim } from './hooks/useTdaim';
+import { getStoredItem, removeStoredItem, setStoredItem } from './utils/storage';
 import TableEditor from './components/TableEditor';
 import PrintModal from './components/PrintModal';
 import PrintTable from './components/PrintTable';
-import { Plus, X, Sun, Moon } from 'lucide-react';
+import Kbd from './components/Kbd';
+import { Plus, X, Sun, Moon, Download, Trash2 } from 'lucide-react';
 
-const createDefaultTable = (): TableData => {
-  const columns: TableColumn[] = [
-    { id: generateId(), name: 'الكود', type: 'code', width: 140 },
-    { id: generateId(), name: 'الاسم', width: 550 },
-    { id: generateId(), name: 'الدرجة / 25', type: 'grade', width: 240 }
-  ];
-  
-  const rows: TableRow[] = [];
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
-  return {
-    id: generateId(),
-    name: 'كشف نتيجة الامتحان الشامل الأول',
-    columns,
-    rows,
-    signature: 'عمر'
-  };
-};
+let earlyInstallPrompt: BeforeInstallPromptEvent | null = null;
 
-const LEGACY_SEED_HASH = 2277752915;
-const LEGACY_SEED_ROW_COUNT = 23;
-
-const hashSeedRows = (entries: string[]) => {
-  let hash = 0x811c9dc5;
-  for (const entry of entries) {
-    for (let index = 0; index < entry.length; index++) {
-      hash ^= entry.charCodeAt(index);
-      hash = Math.imul(hash, 0x01000193) >>> 0;
-    }
-    hash ^= 0x1f;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return hash >>> 0;
-};
-
-const isLegacySeedTable = (table: TableData) => {
-  if (table.columns.length !== 3) return false;
-  const entries = table.rows
-    .map(row => [
-      row.cells[0]?.value.trim() ?? '',
-      row.cells[1]?.value.trim() ?? '',
-      row.cells[2]?.value.trim() ?? '',
-    ])
-    .filter(([code]) => code !== '')
-    .map(([code, name, grade]) => `${code}|${name}|${grade}`);
-  if (entries.length !== LEGACY_SEED_ROW_COUNT) return false;
-  return hashSeedRows(entries) === LEGACY_SEED_HASH;
-};
-
-const stripLegacySeed = (tables: TableData[]) =>
-  tables.map(table => (isLegacySeedTable(table) ? { ...table, rows: [] } : table));
-
-const getTableStats = (table: TableData) => {
-  const grades = table.rows
-    .map(row => {
-      const gradeCell = row.cells.find(cell => cell.type === 'grade');
-      if (!gradeCell) return NaN;
-      const value = gradeCell.value.trim();
-      if (value === '') return NaN;
-      if (value === '#') return 0;
-      return Number.parseFloat(value);
-    })
-    .filter(Number.isFinite);
-  const counts = new Map<number, number>();
-  grades.forEach(grade => counts.set(grade, (counts.get(grade) || 0) + 1));
-  let mode: number | null = null;
-  let modeCount = 0;
-  counts.forEach((count, grade) => {
-    if (count > modeCount || (count === modeCount && (mode === null || grade > mode))) {
-      mode = grade;
-      modeCount = count;
-    }
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    earlyInstallPrompt = event as BeforeInstallPromptEvent;
+    window.dispatchEvent(new Event('simple-table-install-prompt'));
   });
-  return {
-    count: table.rows.length,
-    avg: grades.length ? (grades.reduce((sum, grade) => sum + grade, 0) / grades.length).toFixed(1) : '0.0',
-    max: grades.length ? Math.max(...grades) : 0,
-    mode: mode ?? 0,
-    modeCount,
-  };
-};
+}
 
 export default function App() {
   const { theme, toggleTheme } = useTdaim();
+  const [showShortcutHint, setShowShortcutHint] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(earlyInstallPrompt);
+  const [isInstalled, setIsInstalled] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkInstalled = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+      setIsInstalled(standalone);
+    };
+    checkInstalled();
+    const syncPrompt = () => setDeferredPrompt(earlyInstallPrompt);
+    const installedHandler = () => {
+      earlyInstallPrompt = null;
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+    };
+    syncPrompt();
+    window.addEventListener('simple-table-install-prompt', syncPrompt);
+    window.addEventListener('appinstalled', installedHandler);
+    return () => {
+      window.removeEventListener('simple-table-install-prompt', syncPrompt);
+      window.removeEventListener('appinstalled', installedHandler);
+    };
+  }, []);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const check = () => setShowShortcutHint(mq.matches);
+    check();
+    mq.addEventListener?.('change', check);
+    const onKey = () => {
+      setShowShortcutHint(true);
+      window.removeEventListener('keydown', onKey);
+    };
+    window.addEventListener('keydown', onKey, { once: true });
+    return () => {
+      mq.removeEventListener?.('change', check);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
   const [tables, setTables] = useState<TableData[]>(() => {
-    const saved = localStorage.getItem('exam-tables');
+    const saved = getStoredItem('exam-tables');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as TableData[];
-        return Array.isArray(parsed) ? stripLegacySeed(parsed) : [createDefaultTable()];
+        return normalizeTables(JSON.parse(saved));
       } catch {
         return [createDefaultTable()];
       }
@@ -105,14 +80,31 @@ export default function App() {
   
   const [activeTableId, setActiveTableId] = useState<string>(() => tables[0]?.id || '');
   const [editMode, setEditMode] = useState(false);
-  const [tableStyle, setTableStyle] = useState<'classic' | 'soft' | 'compact'>(() =>
-    (localStorage.getItem('exam-table-style') as 'classic' | 'soft' | 'compact' | null) || 'classic'
-  );
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saving');
+  const [tableStyle, setTableStyle] = useState<'classic' | 'soft' | 'compact'>(() => {
+    const savedStyle = getStoredItem('exam-table-style');
+    return savedStyle === 'soft' || savedStyle === 'compact' ? savedStyle : 'classic';
+  });
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [printJob, setPrintJob] = useState<{ tableIds: string[] } | null>(null);
   const [tableTitleInput, setTableTitleInput] = useState(() => tables.find(t => t.id === activeTableId)?.name || '');
 
   const activeTable = tables.find(t => t.id === activeTableId);
+  const latestTables = useRef(tables);
+  const pendingSave = useRef(false);
+
+  const persistTables = useCallback((nextTables: TableData[]) => {
+    let payload: string;
+    try {
+      payload = JSON.stringify(nextTables);
+    } catch {
+      setSaveStatus('error');
+      return;
+    }
+    const saved = setStoredItem('exam-tables', payload);
+    pendingSave.current = !saved;
+    setSaveStatus(saved ? 'saved' : 'error');
+  }, []);
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const autoGrow = (el: HTMLTextAreaElement) => {
@@ -129,17 +121,31 @@ export default function App() {
   }, [tableTitleInput, activeTableId]);
 
   useEffect(() => {
-    if (activeTable) {
-      setTableTitleInput(activeTable.name);
-    }
-  }, [activeTableId, activeTable]);
+    latestTables.current = tables;
+    pendingSave.current = true;
+    const timer = window.setTimeout(() => persistTables(tables), 400);
+    return () => window.clearTimeout(timer);
+  }, [tables, persistTables]);
 
   useEffect(() => {
-    localStorage.setItem('exam-tables', JSON.stringify(tables));
-  }, [tables]);
+    const flush = () => {
+      if (pendingSave.current) persistTables(latestTables.current);
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', flush);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, [persistTables]);
 
   useEffect(() => {
-    localStorage.setItem('exam-table-style', tableStyle);
+    setStoredItem('exam-table-style', tableStyle);
   }, [tableStyle]);
 
   useEffect(() => {
@@ -155,16 +161,42 @@ export default function App() {
       .join(' - ');
     document.title = printNames || originalTitle;
     window.addEventListener('afterprint', finishPrint, { once: true });
-    const timer = window.setTimeout(() => window.print(), 150);
+    const printTimer = window.setTimeout(() => window.print(), 150);
+    const resetTimer = window.setTimeout(finishPrint, 60_000);
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(printTimer);
+      window.clearTimeout(resetTimer);
       window.removeEventListener('afterprint', finishPrint);
       document.title = originalTitle;
     };
   }, [printJob, tables]);
 
+  const handleInstall = async () => {
+    if (!deferredPrompt || isInstalled) return;
+    await deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    earlyInstallPrompt = null;
+    setDeferredPrompt(null);
+    if (choice.outcome === 'accepted') setIsInstalled(true);
+  };
+
+  const downloadBackup = () => {
+    const blob = new Blob([JSON.stringify(tables, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `simple-table-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const updateTables = useCallback((updater: (current: TableData[]) => TableData[]) => {
+    setSaveStatus('saving');
+    setTables(updater);
+  }, []);
+
   const updateActiveTable = (updatedTable: TableData) => {
-    setTables(prev => prev.map(t => t.id === activeTableId ? updatedTable : t));
+    updateTables(prev => prev.map(t => t.id === activeTableId ? updatedTable : t));
   };
 
   const renameActiveTable = (name: string) => {
@@ -174,27 +206,54 @@ export default function App() {
     setTableTitleInput(name);
   };
 
+  const getNextTabName = (existing: TableData[]) => {
+    const base = 'جدول جديد';
+    const used = new Set(existing.map(t => t.name.trim()));
+    if (!used.has(base)) return base;
+    let index = 2;
+    while (used.has(`${base} ${index}`)) index += 1;
+    return `${base} ${index}`;
+  };
+
   const addTab = () => {
     const newTable = createDefaultTable();
-    newTable.name = `جدول جديد ${tables.length + 1}`;
-    setTables(prev => [...prev, newTable]);
+    newTable.name = getNextTabName(tables);
+    updateTables(prev => [...prev, newTable]);
     setActiveTableId(newTable.id);
+    setTableTitleInput(newTable.name);
   };
 
   const closeTab = (tableId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (tables.length <= 1) return;
-    
+    const target = tables.find(t => t.id === tableId);
+    const name = target?.name || 'هذا الجدول';
+    const confirmed = window.confirm(`هل تريد إغلاق "${name}"؟`);
+    if (!confirmed) return;
+
     const newTables = tables.filter(t => t.id !== tableId);
-    setTables(newTables);
-    
+    updateTables(() => newTables);
+
     if (activeTableId === tableId) {
       setActiveTableId(newTables[0].id);
+      setTableTitleInput(newTables[0].name);
     }
   };
 
   const toggleEditMode = () => {
     setEditMode(!editMode);
+  };
+
+  const clearAllData = () => {
+    const confirmed = window.confirm('سيتم حذف جميع الجداول المحفوظة على هذا الجهاز نهائياً. لا يمكن التراجع. هل أنت متأكد؟');
+    if (!confirmed) return;
+    removeStoredItem('exam-tables');
+    const fresh = createDefaultTable();
+    updateTables(() => [fresh]);
+    setActiveTableId(fresh.id);
+    setTableTitleInput(fresh.name);
+    setShowPrintModal(false);
+    setPrintJob(null);
   };
 
   const getStats = () => {
@@ -222,39 +281,87 @@ export default function App() {
                   e.currentTarget.blur();
                 }
               }}
-              className="report-title flex-1 min-w-0 w-full sm:w-auto resize-none overflow-hidden text-lg md:text-xl font-bold bg-transparent border-none outline-none border-b-2 border-white/40 focus:border-white/80 pb-2 text-right leading-snug"
+              className="report-title flex-1 min-w-0 w-full sm:w-auto resize-none overflow-hidden text-lg md:text-xl font-bold bg-transparent border-none outline-hidden border-b-2 border-white/40 focus:border-white/80 pb-2 text-right leading-snug"
               placeholder="عنوان الجدول"
               aria-label="عنوان التقرير"
             />
-            <div className="stats-grid grid grid-cols-2 sm:flex sm:flex-wrap gap-2 flex-shrink-0 w-full sm:w-auto">
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">عدد الطلاب</span>
+            <div className="stats-grid grid grid-cols-2 sm:flex sm:flex-wrap gap-2 shrink-0 w-full sm:w-auto">
+              <div className="bg-white/15 dark:bg-[#1e3a8a]/65 border border-white/30 dark:border-white/40 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 dark:opacity-100 font-semibold truncate">عدد الطلاب</span>
                 <span key={stats.count} className="stat-value block text-base md:text-lg font-bold">{stats.count}</span>
               </div>
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">المعدل</span>
+              <div className="bg-white/15 dark:bg-[#1e3a8a]/65 border border-white/30 dark:border-white/40 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 dark:opacity-100 font-semibold truncate">المعدل</span>
                 <span key={stats.avg} className="stat-value block text-base md:text-lg font-bold">{stats.avg}</span>
               </div>
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">الأغلب</span>
+              <div className="bg-white/15 dark:bg-[#1e3a8a]/65 border border-white/30 dark:border-white/40 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 dark:opacity-100 font-semibold truncate">الأغلب</span>
                 <span key={`${stats.mode}-${stats.modeCount}`} className="stat-value block text-base md:text-lg font-bold"><span className="text-[10px] md:text-[11px] mr-1">({stats.modeCount})</span>{stats.mode}</span>
               </div>
-              <div className="bg-white/15 border border-white/30 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
-                <span className="block text-[10px] md:text-[11px] opacity-90 font-semibold truncate">أعلى درجة</span>
+              <div className="bg-white/15 dark:bg-[#1e3a8a]/65 border border-white/30 dark:border-white/40 rounded-lg px-2 py-1 md:px-3 md:py-1.5 min-w-0 sm:min-w-[76px] md:min-w-[84px] text-center">
+                <span className="block text-[10px] md:text-[11px] opacity-90 dark:opacity-100 font-semibold truncate">أعلى درجة</span>
                 <span key={stats.max} className="stat-value block text-base md:text-lg font-bold">{stats.max}</span>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <span className="save-dot w-2 h-2 rounded-full bg-emerald-500" />
-              محفوظ تلقائياً على هذا الجهاز
+            <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              <span role="status" aria-live="polite" className="flex items-center gap-2">
+                <span className={`save-dot w-2 h-2 rounded-full ${saveStatus === 'error' ? 'bg-red-500' : saveStatus === 'saving' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                <span className="flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+                  <span>
+                    {saveStatus === 'error'
+                      ? 'فشل الحفظ'
+                      : saveStatus === 'saving'
+                        ? 'جارٍ الحفظ...'
+                        : 'محفوظ تلقائياً على هذا الجهاز'}
+                  </span>
+                  {showShortcutHint && (
+                    <span dir="ltr" className="inline-flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 sm:text-[11px]">
+                      <span className="inline-flex items-center gap-1">
+                        <Kbd>Shift</Kbd>
+                        <span aria-hidden="true">+</span>
+                        <Kbd>Numpad +</Kbd>
+                        <span>إضافة صف</span>
+                      </span>
+                      <span aria-hidden="true">•</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Kbd>Shift</Kbd>
+                        <span aria-hidden="true">+</span>
+                        <Kbd>Numpad −</Kbd>
+                        <span>حذف آخر صف</span>
+                      </span>
+                    </span>
+                  )}
+                </span>
+              </span>
+              {saveStatus === 'error' && (
+                <button type="button" onClick={downloadBackup} className="toolbar-button !py-1 !px-2 text-xs">
+                  <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                  تنزيل نسخة احتياطية
+                </button>
+              )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="toolbar-actions flex flex-wrap items-center gap-2">
+              {deferredPrompt && !isInstalled && (
+                <button
+                  onClick={handleInstall}
+                  className="toolbar-button"
+                  aria-label="تثبيت التطبيق على هذا الجهاز"
+                  title="تثبيت التطبيق على هذا الجهاز"
+                >
+                  <Download className="w-4 h-4" aria-hidden="true" />
+                  تثبيت التطبيق
+                </button>
+              )}
               <button onClick={toggleTheme} className="toolbar-button" aria-label={theme === 'light' ? 'تفعيل الوضع الداكن' : 'تفعيل الوضع الفاتح'}>
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {theme === 'light' ? 'الوضع الداكن' : 'الوضع الفاتح'}
+              </button>
+              <button onClick={clearAllData} className="toolbar-button toolbar-button-danger" aria-label="حذف البيانات">
+                <Trash2 className="w-4 h-4" aria-hidden="true" />
+                حذف البيانات
               </button>
             </div>
           </div>
@@ -265,18 +372,29 @@ export default function App() {
               {tables.map(table => (
                 <div
                   key={table.id}
-                  onClick={() => setActiveTableId(table.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-t-md cursor-pointer text-sm font-semibold transition-colors shrink-0 ${
+                  className={`flex items-center rounded-t-md transition-colors shrink-0 ${
                     activeTableId === table.id
                       ? 'bg-white dark:bg-gray-800 text-[#2563eb] dark:text-blue-400 border-t-2 border-[#2563eb]'
                       : 'bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600'
                   }`}
                 >
-                  <span className="truncate max-w-[120px] md:max-w-[160px]">{table.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTableId(table.id);
+                      setTableTitleInput(table.name);
+                    }}
+                    aria-current={activeTableId === table.id ? 'page' : undefined}
+                    className="px-3 py-1.5 text-sm font-semibold rounded-t-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  >
+                    <span className="block truncate max-w-[120px] md:max-w-[160px]">{table.name}</span>
+                  </button>
                   {tables.length > 1 && (
                     <button
+                      type="button"
+                      aria-label={`إغلاق ${table.name}`}
                       onClick={(e) => closeTab(table.id, e)}
-                      className="text-red-500 hover:text-red-700"
+                      className="me-1.5 p-0.5 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -285,7 +403,7 @@ export default function App() {
               ))}
               <button
                 onClick={addTab}
-                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors shrink-0"
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-700 dark:hover:bg-emerald-800 text-white rounded-t-md text-sm font-semibold flex items-center gap-1 transition-colors shrink-0"
               >
                 <Plus className="w-4 h-4" />
                 إضافة تبويب
