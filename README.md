@@ -1,6 +1,6 @@
 # Simple Table
 
-[![Simple Table](public/og-image.jpg)](https://simple--table.vercel.app)
+[![Simple Table](public/og-image_readme.png)](https://simple--table.vercel.app)
 
 > A fast, no-fuss table builder for everyday work — made to get a table on paper in minutes, not to fight with spreadsheets.
 
